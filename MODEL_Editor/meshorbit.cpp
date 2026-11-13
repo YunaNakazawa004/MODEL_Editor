@@ -98,6 +98,7 @@ HRESULT CMeshOrbit::Init(const D3DXVECTOR3 Offset0, const  D3DXVECTOR3 Offset1, 
 	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
 	DWORD* pIdx;							// インデックス情報へのポインタ
 
+	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 	m_aOffset[0] = Offset0;
 	m_aOffset[1] = Offset1;
 	m_aCol[0] = col0;
@@ -238,6 +239,7 @@ void CMeshOrbit::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
+	D3DXMATRIX mtxWorld;
 
 	// アルファテストを有効にする
 	pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
@@ -255,10 +257,13 @@ void CMeshOrbit::Draw(void)
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
 	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
+	D3DXMatrixIdentity(&mtxWorld);
 
 	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+	pDevice->SetTransform(D3DTS_WORLD, &mtxWorld);
+
+	// マトリックスを設定
+	CMesh::SetMatrix(mtxWorld);
 
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D));

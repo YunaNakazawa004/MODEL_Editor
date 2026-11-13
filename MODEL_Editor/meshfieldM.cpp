@@ -75,9 +75,6 @@ CMeshFieldM::CMeshFieldM(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュフィールドクラスの値をクリア
 	memset(&m_aIdxTexture[0], -1, sizeof m_aIdxTexture);
-	m_pos = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_rot = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
-	m_scale = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
 	m_block = D3DXVECTOR2(0.0f, 0.0f);
 	m_size = D3DXVECTOR2(0.0f, 0.0f);
 	m_col = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
@@ -104,11 +101,11 @@ HRESULT CMeshFieldM::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	DWORD* pIdx;							// インデックス情報へのポインタ
 
 	// クラスの値を初期化
-	m_pos = pos;
-	m_rot = rot;
+	SetPosition(pos);
+	SetRotation(rot);
+	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 	m_block = block;
 	m_size = size;
-	m_scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
 	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
 
@@ -215,25 +212,9 @@ void CMeshFieldM::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
-	D3DXMATRIX mtxRot, mtxTrans, mtxScale;		// 計算用マトリックス
 
-	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
-
-	// 向きを反映
-	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
-
-	// スケールを反映
-	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
-
-	// 位置を反映
-	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
-
-	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+	// マトリックスを計算
+	CMesh::Draw();
 
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D_MULTI));
@@ -263,15 +244,6 @@ void CMeshFieldM::BindTexture(const int* pTexture)
 		m_aIdxTexture[0] = pTexture[0];
 		m_aIdxTexture[1] = pTexture[1];
 	}
-}
-
-//========================================================================
-// 位置設定
-//========================================================================
-void CMeshFieldM::SetPosition(const D3DXVECTOR3 pos)
-{
-	// 位置を変更
-	m_pos = pos;
 }
 
 //========================================================================
@@ -309,54 +281,6 @@ D3DXVECTOR3 CMeshFieldM::GetPosVtx(const int nCntVtx)
 	GetVtxBuff()->Unlock();
 
 	return pos;
-}
-
-//========================================================================
-// スケール設定
-//========================================================================
-void CMeshFieldM::SetScale(const D3DXVECTOR3 scale)
-{
-	// スケールを変更
-	m_scale = scale;
-}
-
-//========================================================================
-// 角度設定
-//========================================================================
-void CMeshFieldM::SetRotation(const D3DXVECTOR3 rot)
-{
-	// X向きを調整
-	if (m_rot.x > D3DX_PI)
-	{
-		m_rot.x -= D3DX_PI * 2.0f;
-	}
-	else if (m_rot.x < -D3DX_PI)
-	{
-		m_rot.x += D3DX_PI * 2.0f;
-	}
-
-	// Y向きを調整
-	if (m_rot.y > D3DX_PI)
-	{
-		m_rot.y -= D3DX_PI * 2.0f;
-	}
-	else if (m_rot.y < -D3DX_PI)
-	{
-		m_rot.y += D3DX_PI * 2.0f;
-	}
-
-	// Z向きを調整
-	if (m_rot.z > D3DX_PI)
-	{
-		m_rot.z -= D3DX_PI * 2.0f;
-	}
-	else if (m_rot.z < -D3DX_PI)
-	{
-		m_rot.z += D3DX_PI * 2.0f;
-	}
-
-	// 向きを変更
-	m_rot = rot;
 }
 
 //========================================================================
@@ -898,14 +822,15 @@ D3DXVECTOR2 CMeshFieldM::GetPolygonIdx(const D3DXVECTOR3 pos)
 {
 	// ローカル変数
 	D3DXVECTOR2 polygonIdx = { -1.0f,-1.0f };
+	D3DXVECTOR3 posM = GetPosition();
 	D3DXVECTOR2 posP;			// 与えられた位置のオフセット位置
 	D3DXVECTOR2 posOff;			// メッシュフィールドのオフセット位置
 
 	// オフセット位置を算出
 	posP.x = pos.x + (m_size.x * m_block.x);
 	posP.y = pos.z - (m_size.y * m_block.y);
-	posOff.x = m_pos.x + (m_size.x * m_block.x);
-	posOff.y = m_pos.z - (m_size.y * m_block.y);
+	posOff.x = posM.x + (m_size.x * m_block.x);
+	posOff.y = posM.z - (m_size.y * m_block.y);
 
 	polygonIdx.x = (posP.x / (m_size.x * 2.0f));
 	polygonIdx.y = (posP.y / -(m_size.y * 2.0f));

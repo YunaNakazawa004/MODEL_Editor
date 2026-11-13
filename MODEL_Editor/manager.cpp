@@ -265,10 +265,12 @@ HRESULT CManager::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	}
 
 	// 地面
-	CObject3D::Create(DEFAULT_VECTOR3, 10000.0f, 0.0f, 10000.0f, CObject::TYPE_FIELD, "data\\TEXTURE\\field002.jpg", 3);
+	CObject3D* pObject3D = CObject3D::Create(DEFAULT_VECTOR3, 10000.0f, 0.0f, 10000.0f, CObject::TYPE_FIELD, "data\\TEXTURE\\field002.jpg", 3);
+	pObject3D->SetTexUV(100, 100);
 
 	// 空
-	CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 50000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
+	CMeshDome* pMeshDome = CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 50000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
+	pMeshDome->SetCalc(false);
 
 	// コンソールの生成
 	CConsole::Create(DEFAULT_VECTOR3);

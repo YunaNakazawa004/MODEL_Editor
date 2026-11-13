@@ -71,9 +71,6 @@ CMeshWall* CMeshWall::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const
 CMeshWall::CMeshWall(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュウォールクラスの値をクリア
-	m_pos = DEFAULT_VECTOR3;
-	m_rot = DEFAULT_VECTOR3;
-	m_scale = DEFAULT_VECTOR3;
 	m_block = DEFAULT_VECTOR2;
 	m_size = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
@@ -102,11 +99,11 @@ HRESULT CMeshWall::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	DWORD* pIdx;							// インデックス情報へのポインタ
 
 	// クラスの値を初期化
-	m_pos = pos;
-	m_rot = rot;
+	SetPosition(pos);
+	SetRotation(rot);
+	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 	m_block = block;
 	m_size = size;
-	m_scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
 	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
 
@@ -216,25 +213,9 @@ void CMeshWall::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
-	D3DXMATRIX mtxRot, mtxTrans, mtxScale;		// 計算用マトリックス
 
-	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
-
-	// 向きを反映
-	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
-
-	// スケールを反映
-	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
-
-	// 位置を反映
-	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
-
-	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+	// マトリックスを計算
+	CMesh::Draw();
 
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D));
@@ -262,15 +243,6 @@ void CMeshWall::Draw(void)
 void CMeshWall::BindTexture(const int nTexture)
 {
 	m_nIdxTexture = nTexture;
-}
-
-//========================================================================
-// 位置設定
-//========================================================================
-void CMeshWall::SetPosition(const D3DXVECTOR3 pos)
-{
-	// 位置を変更
-	m_pos = pos;
 }
 
 //========================================================================
@@ -308,33 +280,6 @@ D3DXVECTOR3 CMeshWall::GetPosVtx(const int nCntVtx)
 	GetVtxBuff()->Unlock();
 
 	return pos;
-}
-
-//========================================================================
-// スケール設定
-//========================================================================
-void CMeshWall::SetScale(const D3DXVECTOR3 scale)
-{
-	// スケールを変更
-	m_scale = scale;
-}
-
-//========================================================================
-// 角度設定
-//========================================================================
-void CMeshWall::SetRotation(const D3DXVECTOR3 rot)
-{
-	// X向きを調整
-	CorrectAngle(&m_rot.x, m_rot.x);
-
-	// Y向きを調整
-	CorrectAngle(&m_rot.y, m_rot.y);
-
-	// Z向きを調整
-	CorrectAngle(&m_rot.z, m_rot.z);
-
-	// 向きを変更
-	m_rot = rot;
 }
 
 //========================================================================
@@ -778,9 +723,11 @@ D3DXVECTOR2 CMeshWall::GetPolygonIdx(const D3DXVECTOR3 pos)
 	D3DXVECTOR2 polygonIdx = { -1.0f,-1.0f };
 	D3DXVECTOR2 posRotDefP;		// 角度を直した位置
 	D3DXVECTOR2 posP;			// 与えられた位置のオフセット位置
+	D3DXVECTOR3 posM = GetPosition();
+	D3DXVECTOR3 rot = GetRotation();
 
 	// 壁の位置角度分自分の位置をずらす
-	posRotDefP.x = cosf(-m_rot.y) * (pos.x - m_pos.x) + sinf(-m_rot.y) * (pos.z - m_pos.z);
+	posRotDefP.x = cosf(-rot.y) * (pos.x - posM.x) + sinf(-rot.y) * (pos.z - posM.z);
 	posP.x = posRotDefP.x + (m_size.x * m_block.x);		// 角度を直した位置をずらす
 	posP.y = pos.y - (m_size.y * m_block.y * 2.0f);		// 壁は原点が底辺にあるので高さを２倍減らす
 

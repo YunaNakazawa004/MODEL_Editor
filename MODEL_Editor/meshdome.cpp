@@ -70,10 +70,7 @@ CMeshDome* CMeshDome::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const
 CMeshDome::CMeshDome(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュドームクラスの値をクリア
-	m_pos = DEFAULT_VECTOR3;
-	m_rot = DEFAULT_VECTOR3;
 	m_fRadius = 0.0f;
-	m_scale = DEFAULT_VECTOR3;
 	m_block = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
 	m_nNumVtx = 0;
@@ -99,11 +96,11 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	DWORD* pIdx;							// インデックス情報へのポインタ
 
 	// クラスの値を初期化
-	m_pos = pos;
-	m_rot = rot;
+	SetPosition(pos);
+	SetRotation(rot);
+	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 	m_block = block;
 	m_fRadius = fRadius;
-	m_scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 
 	// 頂点バッファの数
 	int nNumVtxCylinder = ((int)m_block.x + 1) * ((int)m_block.y + 1);
@@ -264,28 +261,12 @@ void CMeshDome::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
-	D3DXMATRIX mtxRot, mtxTrans, mtxScale;		// 計算用マトリックス
+
+	// マトリックスを計算
+	CMesh::Draw();
 
 	// カリングをOFFに設定
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-
-	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
-
-	// 向きを反映
-	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
-
-	// スケールを反映
-	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
-
-	// 位置を反映
-	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
-
-	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
 
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D));
@@ -315,15 +296,6 @@ void CMeshDome::Draw(void)
 
 	// カリングを戻す
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
-}
-
-//========================================================================
-// 位置設定
-//========================================================================
-void CMeshDome::SetPosition(const D3DXVECTOR3 pos)
-{
-	// 位置を変更
-	m_pos = pos;
 }
 
 //========================================================================
@@ -361,33 +333,6 @@ D3DXVECTOR3 CMeshDome::GetPosVtx(const int nCntVtx)
 	GetVtxBuff()->Unlock();
 
 	return pos;
-}
-
-//========================================================================
-// スケール設定
-//========================================================================
-void CMeshDome::SetScale(const D3DXVECTOR3 scale)
-{
-	// スケールを変更
-	m_scale = scale;
-}
-
-//========================================================================
-// 角度設定
-//========================================================================
-void CMeshDome::SetRotation(const D3DXVECTOR3 rot)
-{
-	// X向きを調整
-	CorrectAngle(&m_rot.x, m_rot.x);
-
-	// Y向きを調整
-	CorrectAngle(&m_rot.y, m_rot.y);
-
-	// Z向きを調整
-	CorrectAngle(&m_rot.z, m_rot.z);
-
-	// 向きを変更
-	m_rot = rot;
 }
 
 //========================================================================

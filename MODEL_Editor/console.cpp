@@ -191,11 +191,6 @@ void CConsole::Update(void)
 		pMeshManager->Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, m_block, m_size, m_type);
 	}
 
-	if (pInputKeyboard->GetTrigger(DIK_F6) == true)
-	{// 配置リセット
-		pMeshManager->ResetData();
-	}
-
 	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
 	{// ファイル書き出し
 		pMeshManager->WriteData("data\\mesh.txt");
@@ -219,11 +214,20 @@ void CConsole::Update(void)
 	{// NULLチェック
 		// 頂点操作に関するコメント
 		pDebugProc->Print("\n****** 頂点操作 ******\n");
-		pDebugProc->Print("頂点の選択 [ A ←→ D ]\n");
+		pDebugProc->Print("頂点の選択 [ Q ←→ E ]\n");
 		pDebugProc->Print("現在の頂点番号 ( %d )\n", pMesh->GetVtxIdx());
+		pDebugProc->Print("現在の向き ( %f %f %f )\n", pMesh->GetRotation().x, pMesh->GetRotation().y, pMesh->GetRotation().z);
+		pDebugProc->Print("X軸回転 [ W > S ]\n");
+		pDebugProc->Print("Y軸回転 [ A > D ]\n");
+		pDebugProc->Print("Z軸回転 [ Z > C ]\n");
 		pDebugProc->Print("X軸移動 [ T > G ] : ( %f )\n", pMesh->GetVtxPos().x);
 		pDebugProc->Print("Y軸移動 [ Y > H ] : ( %f )\n", pMesh->GetVtxPos().y);
 		pDebugProc->Print("Z軸移動 [ U > J ] : ( %f )\n", pMesh->GetVtxPos().z);
+	}
+
+	if (pInputKeyboard->GetTrigger(DIK_F6) == true)
+	{// 配置リセット
+		pMeshManager->ResetData();
 	}
 }
 

@@ -36,7 +36,7 @@
 //========================================================================
 // 生成処理
 //========================================================================
-CMesh* CMesh::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVECTOR2 block, const D3DXVECTOR2 size, const int type)
+CMesh* CMesh::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVECTOR2 block, const D3DXVECTOR2 size, const int type, const bool bCalc)
 {
 	CMesh* pMesh = NULL;
 
@@ -74,10 +74,15 @@ CMesh* CMesh::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVEC
 
 	if (pMesh != NULL)
 	{// NULLチェック
+		pMesh->m_pos = pos;
+		pMesh->m_rot = rot;
+		pMesh->m_scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
+		pMesh->m_bCalc = bCalc;
+
 		return pMesh;
 	}
 
-	OutputDebugStringA("! ! ! シーンの生成に失敗しました ! ! !\n");
+	OutputDebugStringA("! ! ! メッシュ生成に失敗しました ! ! !\n");
 
 	return NULL;
 }
@@ -88,10 +93,14 @@ CMesh* CMesh::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVEC
 CMesh::CMesh(const int nPriority) :CObject(nPriority)
 {
 	// 値のクリア
+	m_pos = DEFAULT_VECTOR3;
+	m_rot = DEFAULT_VECTOR3;
+	m_scale = DEFAULT_VECTOR3;
 	m_nNumVtxAll = 0;
 	m_nNumIdxAll = 0;
 	m_nVtxIdx = 0;
 	m_type = 0;
+	m_bCalc = true;
 }
 
 //========================================================================
@@ -137,20 +146,56 @@ void CMesh::Uninit(void)
 //========================================================================
 void CMesh::Update(void)
 {
+	if (m_bCalc == false)
+	{// 何もしない
+		return;
+	}
+
 	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
 	CInputMouse* pInputMouse = CManager::GetInputMouse();				// マウス入力の取得
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	CEffectBatching* pEffectBatching = CManager::GetEffectBatching();	// バッチ描画エフェクトの取得
 	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
 
+	if (m_pVtxBuff == nullptr)
+	{// NULLチェック
+		return;
+	}
+
 	// 頂点操作
-	if (pInputKeyboard->GetRepeat(DIK_D) == true)
+	if (pInputKeyboard->GetRepeat(DIK_E) == true)
 	{// 次の頂点
 		m_nVtxIdx = (m_nVtxIdx + 1) % m_nNumVtxAll;
 	}
-	else if (pInputKeyboard->GetRepeat(DIK_A) == true)
+	else if (pInputKeyboard->GetRepeat(DIK_Q) == true)
 	{// 前の頂点
 		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
+	}
+	
+	// 向き操作
+	if (pInputKeyboard->GetRepeat(DIK_W) == true)
+	{// X軸回転
+		m_rot.x += 0.1f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_S) == true)
+	{// X軸回転
+		m_rot.x -= 0.1f;
+	}
+	if (pInputKeyboard->GetRepeat(DIK_A) == true)
+	{// Y軸回転
+		m_rot.y += 0.1f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_D) == true)
+	{// Y軸回転
+		m_rot.y -= 0.1f;
+	}
+	if (pInputKeyboard->GetRepeat(DIK_Z) == true)
+	{// Z軸回転
+		m_rot.z += 0.1f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_C) == true)
+	{// Z軸回転
+		m_rot.z -= 0.1f;
 	}
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
@@ -162,7 +207,10 @@ void CMesh::Update(void)
 		D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_RED : COLOR_GREEN;
 		float fSize = (m_nVtxIdx == nCntVtx) ? 10.0f : 6.0f;
 
-		pEffectBatching->Set(pVtx[nCntVtx].pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
+		D3DXVECTOR3 pos;
+		D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
+
+		pEffectBatching->Set(pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
 
 		if (m_nVtxIdx != nCntVtx)
 		{// 操作されている番号じゃなければ飛ばす
@@ -209,6 +257,63 @@ void CMesh::Update(void)
 //========================================================================
 void CMesh::Draw(void)
 {
+	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
+	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
+	D3DXMATRIX mtxRot, mtxScale, mtxTrans;		// 計算用マトリックス
+
+	// ワールドマトリックスの初期化
+	D3DXMatrixIdentity(&m_mtxWorld);
+
+	// 向きを反映
+	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
+
+	// スケールを反映
+	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
+
+	// 位置を反映
+	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
+
+	// ワールドマトリックスの設定
+	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+}
+
+//========================================================================
+// 位置設定
+//========================================================================
+void CMesh::SetPosition(const D3DXVECTOR3 pos)
+{
+	// 位置を変更
+	m_pos = pos;
+}
+
+//========================================================================
+// 角度設定
+//========================================================================
+void CMesh::SetRotation(const D3DXVECTOR3 rot)
+{
+	// X向きを調整
+	CorrectAngle(&m_rot.x, m_rot.x);
+
+	// Y向きを調整
+	CorrectAngle(&m_rot.y, m_rot.y);
+
+	// Z向きを調整
+	CorrectAngle(&m_rot.z, m_rot.z);
+
+	// 向きを変更
+	m_rot = rot;
+}
+
+//========================================================================
+// スケール設定
+//========================================================================
+void CMesh::SetScale(const D3DXVECTOR3 scale)
+{
+	// スケールを変更
+	m_scale = scale;
 }
 
 //========================================================================

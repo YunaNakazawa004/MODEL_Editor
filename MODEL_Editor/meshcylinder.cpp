@@ -70,9 +70,6 @@ CMeshCylinder* CMeshCylinder::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 ro
 CMeshCylinder::CMeshCylinder(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュシリンダークラスの値をクリア
-	m_pos = DEFAULT_VECTOR3;
-	m_rot = DEFAULT_VECTOR3;
-	m_scale = DEFAULT_VECTOR3;
 	m_block = DEFAULT_VECTOR2;
 	m_size = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
@@ -99,12 +96,12 @@ HRESULT CMeshCylinder::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
 	DWORD* pIdx;							// インデックス情報へのポインタ
 
-	m_pos = pos;
-	m_rot = rot;
+	SetPosition(pos);
+	SetRotation(rot);
+	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
 	m_block = block;
 	m_size = size;
 	m_col = col;
-	m_scale = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
 	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
 	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
 	m_bInside = bInside;
@@ -170,15 +167,15 @@ HRESULT CMeshCylinder::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	{
 		if (nCntMeshCylinder1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
 		{// 縮退ポリゴンのところ
-			nNum++;
+			pIdx[0] = (nCntMeshCylinder1 - nNum) - 1;
+			pIdx[1] = (nCntMeshCylinder1 - nNum) + ((int)m_block.x + 1);
 
-			pIdx[0] = (DWORD)(nCntMeshCylinder1 - nNum);
-			pIdx[1] = (DWORD)(nCntMeshCylinder1 + ((int)m_block.x + 1));
+			nNum++;
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = (DWORD)((nCntMeshCylinder1 - nNum) + ((int)m_block.x + 1));
-			pIdx[1] = (DWORD)((nCntMeshCylinder1 - nNum));
+			pIdx[0] = (nCntMeshCylinder1 - nNum) + ((int)m_block.x + 1);
+			pIdx[1] = (nCntMeshCylinder1 - nNum);
 		}
 
 		pIdx += 2;
@@ -222,28 +219,12 @@ void CMeshCylinder::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
-	D3DXMATRIX mtxRot, mtxScale, mtxTrans;		// 計算用マトリックス
 
 	// カリングをOFFに設定
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
-
-	// 向きを反映
-	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
-
-	// スケールを反映
-	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
-
-	// 位置を反映
-	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
-
-	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+	// マトリックスを計算
+	CMesh::Draw();
 
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D));
@@ -263,15 +244,6 @@ void CMeshCylinder::Draw(void)
 
 	// カリングを戻す
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
-}
-
-//========================================================================
-// 位置設定
-//========================================================================
-void CMeshCylinder::SetPosition(const D3DXVECTOR3 pos)
-{
-	// 位置を変更
-	m_pos = pos;
 }
 
 //========================================================================
@@ -312,15 +284,6 @@ D3DXVECTOR3 CMeshCylinder::GetPosVtx(const int nCntVtx)
 }
 
 //========================================================================
-// スケール設定
-//========================================================================
-void CMeshCylinder::SetScale(const D3DXVECTOR3 scale)
-{
-	// スケールを変更
-	m_scale = scale;
-}
-
-//========================================================================
 // サイズ設定
 //========================================================================
 void CMeshCylinder::SetSize(const D3DXVECTOR2 size)
@@ -349,24 +312,6 @@ void CMeshCylinder::SetSize(const D3DXVECTOR2 size)
 
 	// 頂点バッファをアンロックする
 	GetVtxBuff()->Unlock();
-}
-
-//========================================================================
-// 角度設定
-//========================================================================
-void CMeshCylinder::SetRotation(const D3DXVECTOR3 rot)
-{
-	// X向きを調整
-	CorrectAngle(&m_rot.x, m_rot.x);
-
-	// Y向きを調整
-	CorrectAngle(&m_rot.y, m_rot.y);
-
-	// Z向きを調整
-	CorrectAngle(&m_rot.z, m_rot.z);
-
-	// 向きを変更
-	m_rot = rot;
 }
 
 //========================================================================
@@ -451,6 +396,7 @@ void CMeshCylinder::SetTexScroll(const int nCntVtx, const float fScrollU, const 
 //=============================================================================
 bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTOR3* pMove, const float fRadius, const float fHeight)
 {
+	D3DXVECTOR3 pos = GetPosition();
 	bool bColl = false;
 
 	for (int nCnt = 0; nCnt < m_block.x; nCnt++)
@@ -479,14 +425,14 @@ bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTO
 		}
 
 		// 始点
-		start.x = m_pos.x + fXS;
+		start.x = pos.x + fXS;
 		start.y = 0.0f;
-		start.z = m_pos.z + fZS;
+		start.z = pos.z + fZS;
 
 		// 終点
-		end.x = m_pos.x + fXE;
+		end.x = pos.x + fXE;
 		end.y = 0.0f;
-		end.z = m_pos.z + fZE;
+		end.z = pos.z + fZE;
 
 		// 境界線ベクトル
 		vecLine.x = (end.x) - (start.x);
@@ -545,8 +491,8 @@ bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTO
 			if ((m_bInside == true && fPosLine < 0.0f && (fPosOldLine >= 0.0f)) ||
 				(m_bInside == false && fPosLine > 0.0f && (fPosOldLine <= 0.0f)))
 			{// 交差した
-				if ((m_pos.y - fHeight <= pPos->y) &&
-					(m_pos.y + m_size.y >= pPos->y))
+				if ((pos.y - fHeight <= pPos->y) &&
+					(pos.y + m_size.y >= pPos->y))
 				{// 高さが合っている
 					bColl = true;
 

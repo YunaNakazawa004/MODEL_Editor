@@ -30,14 +30,8 @@ public:
 
 	void BindTexture(const int nTexture){ m_nIdxTexture = nTexture; }
 
-	void SetPosition(const D3DXVECTOR3 pos);
-	D3DXVECTOR3 GetPosition(void) { return m_pos; }
 	void SetPosVtx(const int nCntVtx, const D3DXVECTOR3 pos);
 	D3DXVECTOR3 GetPosVtx(const int nCntVtx);
-	void SetRotation(const D3DXVECTOR3 rot);
-	D3DXVECTOR3 GetRotation(void) { return m_rot; }
-	void SetScale(const D3DXVECTOR3 scale);
-	D3DXVECTOR3 GetScale(void) { return m_scale; }
 	void SetColor(const D3DXCOLOR col);
 	void SetColor(const int nCntVtx, const D3DXCOLOR col);
 	D3DXCOLOR GetColor(void) { return m_col; }
@@ -52,11 +46,7 @@ public:
 
 private:
 	int m_nIdxTexture;			// テクスチャのインデックス
-	D3DXMATRIX m_mtxWorld;		// ワールドマトリックス
-	D3DXVECTOR3 m_pos;			// 位置
-	D3DXVECTOR3 m_rot;			// 向き
 	float m_fRadius;			// 半径
-	D3DXVECTOR3 m_scale;		// スケール
 	D3DXVECTOR2 m_block;		// 分割数
 	D3DXCOLOR m_col;			// 色
 	int m_nNumVtx;				// 頂点の総数

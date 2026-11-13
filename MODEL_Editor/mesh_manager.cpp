@@ -114,6 +114,11 @@ void CMeshManager::ResetData(void)
 //========================================================================
 HRESULT CMeshManager::WriteData(const char* pFilename)
 {
+	if (m_apMesh == nullptr)
+	{// NULLチェック
+		return E_FAIL;
+	}
+
 	HRESULT hr = m_apMesh->WriteData(pFilename);
 
 	return hr;

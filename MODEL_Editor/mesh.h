@@ -34,11 +34,20 @@ public:
 	CMesh(const int nPriority = PRIORITY_3);
 	virtual ~CMesh();
 
-	static CMesh* Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVECTOR2 block, const D3DXVECTOR2 size, const int type);
+	static CMesh* Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const D3DXVECTOR2 block, const D3DXVECTOR2 size, const int type, const bool bCalc = true);
 	virtual HRESULT Init(void);
 	virtual void Uninit(void);
 	virtual void Update(void);
 	virtual void Draw(void);
+
+	void SetPosition(const D3DXVECTOR3 pos);
+	D3DXVECTOR3 GetPosition(void) { return m_pos; }
+	void SetRotation(const D3DXVECTOR3 rot);
+	D3DXVECTOR3 GetRotation(void) { return m_rot; }
+	void SetScale(const D3DXVECTOR3 scale);
+	D3DXVECTOR3 GetScale(void) { return m_scale; }
+	void SetMatrix(const D3DXMATRIX mtxWorld) { m_mtxWorld = mtxWorld; }
+	void SetCalc(const bool bCalc) { m_bCalc = bCalc; }
 
 	HRESULT CreateVtxBuff(const int nValue);
 	HRESULT CreateVtxBuffMulti(const int nValue);
@@ -55,10 +64,15 @@ public:
 private:
 	LPDIRECT3DVERTEXBUFFER9 m_pVtxBuff;				// 頂点バッファへのポインタ
 	LPDIRECT3DINDEXBUFFER9 m_pIdxBuff;				// インデックスバッファへのポインタ
-	int m_nNumVtxAll;	// 頂点の総数
-	int m_nNumIdxAll;	// インデックスの総数
-	int m_nVtxIdx;		// 選択されている頂点
-	int m_type;			// 種類
+	D3DXMATRIX m_mtxWorld;		// ワールドマトリックス
+	D3DXVECTOR3 m_pos;			// 位置
+	D3DXVECTOR3 m_rot;			// 向き
+	D3DXVECTOR3 m_scale;		// スケール
+	int m_nNumVtxAll;			// 頂点の総数
+	int m_nNumIdxAll;			// インデックスの総数
+	int m_nVtxIdx;				// 選択されている頂点
+	int m_type;					// 種類
+	bool m_bCalc;				// 移動させたり計算したりするかどうか
 };
 
 #endif
