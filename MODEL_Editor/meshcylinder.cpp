@@ -70,8 +70,6 @@ CMeshCylinder* CMeshCylinder::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 ro
 CMeshCylinder::CMeshCylinder(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュシリンダークラスの値をクリア
-	m_block = DEFAULT_VECTOR2;
-	m_size = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
 	m_nNumVtx = 0;
 	m_nNumIdx = 0;
@@ -99,11 +97,11 @@ HRESULT CMeshCylinder::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	SetPosition(pos);
 	SetRotation(rot);
 	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-	m_block = block;
-	m_size = size;
+	SetBlock(block);
+	CMesh::SetSize(size);
 	m_col = col;
-	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
-	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
+	m_nNumVtx = ((int)block.x + 1) * ((int)block.y + 1);
+	m_nNumIdx = (((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4) + 2;
 	m_bInside = bInside;
 
 	// 頂点バッファを生成
@@ -116,22 +114,22 @@ HRESULT CMeshCylinder::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshCylinder1 = 0; nCntMeshCylinder1 < (int)m_block.y + 1; nCntMeshCylinder1++)
+	for (int nCntMeshCylinder1 = 0; nCntMeshCylinder1 < (int)block.y + 1; nCntMeshCylinder1++)
 	{
-		for (int nCntMeshCylinder2 = 0; nCntMeshCylinder2 < (int)m_block.x + 1; nCntMeshCylinder2++)
+		for (int nCntMeshCylinder2 = 0; nCntMeshCylinder2 < (int)block.x + 1; nCntMeshCylinder2++)
 		{
 			// 頂点座標の設定
 			if (bInside == true)
 			{// 内側
-				pVtx[0].pos.x = sinf(nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / m_block.x)) * m_size.x;
-				pVtx[0].pos.y = m_size.y - ((m_size.y / m_block.y) * nCntMeshCylinder1);
-				pVtx[0].pos.z = cosf(nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / m_block.x)) * m_size.x;
+				pVtx[0].pos.x = sinf(nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / block.x)) * size.x;
+				pVtx[0].pos.y = size.y - ((size.y / block.y) * nCntMeshCylinder1);
+				pVtx[0].pos.z = cosf(nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / block.x)) * size.x;
 			}
 			else
 			{// 外側
-				pVtx[0].pos.x = sinf(-nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / m_block.x)) * m_size.x;
-				pVtx[0].pos.y = m_size.y - ((m_size.y / m_block.y) * nCntMeshCylinder1);
-				pVtx[0].pos.z = cosf(-nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / m_block.x)) * m_size.x;
+				pVtx[0].pos.x = sinf(-nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / block.x)) * size.x;
+				pVtx[0].pos.y = size.y - ((size.y / block.y) * nCntMeshCylinder1);
+				pVtx[0].pos.z = cosf(-nCntMeshCylinder2 * ((D3DX_PI * 2.0f) / block.x)) * size.x;
 			}
 
 			// rhwの設定
@@ -165,16 +163,16 @@ HRESULT CMeshCylinder::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	// 頂点番号データの設定
 	for (int nCntMeshCylinder1 = 0; nCntMeshCylinder1 < m_nNumIdx / 2; nCntMeshCylinder1++)
 	{
-		if (nCntMeshCylinder1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
+		if (nCntMeshCylinder1 % ((int)block.x + 2) == ((int)block.x + 1))
 		{// 縮退ポリゴンのところ
 			pIdx[0] = (nCntMeshCylinder1 - nNum) - 1;
-			pIdx[1] = (nCntMeshCylinder1 - nNum) + ((int)m_block.x + 1);
+			pIdx[1] = (nCntMeshCylinder1 - nNum) + ((int)block.x + 1);
 
 			nNum++;
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = (nCntMeshCylinder1 - nNum) + ((int)m_block.x + 1);
+			pIdx[0] = (nCntMeshCylinder1 - nNum) + ((int)block.x + 1);
 			pIdx[1] = (nCntMeshCylinder1 - nNum);
 		}
 
@@ -289,22 +287,26 @@ D3DXVECTOR3 CMeshCylinder::GetPosVtx(const int nCntVtx)
 void CMeshCylinder::SetSize(const D3DXVECTOR2 size)
 {
 	VERTEX_3D* pVtx;					// 頂点情報へのポインタ
+	D3DXVECTOR2 block = GetBlock();
+
+	// サイズを設定
+	CMesh::SetSize(size);
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshCylinder1 = 0; nCntMeshCylinder1 < (int)m_block.y + 1; nCntMeshCylinder1++)
+	for (int nCntMeshCylinder1 = 0; nCntMeshCylinder1 < (int)block.y + 1; nCntMeshCylinder1++)
 	{
-		for (int nCntMeshCylinder2 = 0; nCntMeshCylinder2 < (int)m_block.x + 1; nCntMeshCylinder2++)
+		for (int nCntMeshCylinder2 = 0; nCntMeshCylinder2 < (int)block.x + 1; nCntMeshCylinder2++)
 		{
-			float fAngle = ((D3DX_PI * 2.0f) / m_block.x);
-			float fSize = (m_size.x + (m_size.y * -(float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * (((int)m_block.x) + 1))) % ((int)m_block.y + 1))));
+			float fAngle = ((D3DX_PI * 2.0f) / block.x);
+			float fSize = (size.x + (size.y * -(float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * (((int)block.x) + 1))) % ((int)block.y + 1))));
 
 			// 頂点座標の設定
-			pVtx[0].pos.x = sinf((float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * -fAngle) * fSize;
+			pVtx[0].pos.x = sinf((float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * ((int)block.x + 1))) / ((int)block.y + 1)) * -fAngle) * fSize;
 			pVtx[0].pos.y = 0.0f;
-			pVtx[0].pos.z = cosf((float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * fAngle) * fSize;
+			pVtx[0].pos.z = cosf((float)((nCntMeshCylinder2 + (nCntMeshCylinder1 * ((int)block.x + 1))) / ((int)block.y + 1)) * fAngle) * fSize;
 
 			pVtx++;
 		}
@@ -397,9 +399,12 @@ void CMeshCylinder::SetTexScroll(const int nCntVtx, const float fScrollU, const 
 bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTOR3* pMove, const float fRadius, const float fHeight)
 {
 	D3DXVECTOR3 pos = GetPosition();
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
+
 	bool bColl = false;
 
-	for (int nCnt = 0; nCnt < m_block.x; nCnt++)
+	for (int nCnt = 0; nCnt < block.x; nCnt++)
 	{
 		D3DXVECTOR3 start, end;
 		float fXS, fZS, fXE, fZE;
@@ -409,19 +414,19 @@ bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTO
 
 		if (m_bInside == true)
 		{// 内側
-			fXS = sinf(nCnt * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x - fRadius);
-			fZS = cosf(nCnt * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x - fRadius);
+			fXS = sinf(nCnt * ((D3DX_PI * 2.0f) / block.x)) * (size.x - fRadius);
+			fZS = cosf(nCnt * ((D3DX_PI * 2.0f) / block.x)) * (size.x - fRadius);
 
-			fXE = sinf((nCnt + 1) * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x - fRadius);
-			fZE = cosf((nCnt + 1) * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x - fRadius);
+			fXE = sinf((nCnt + 1) * ((D3DX_PI * 2.0f) / block.x)) * (size.x - fRadius);
+			fZE = cosf((nCnt + 1) * ((D3DX_PI * 2.0f) / block.x)) * (size.x - fRadius);
 		}
 		else
 		{// 外側
-			fXS = sinf(nCnt * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x + fRadius);
-			fZS = cosf(nCnt * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x + fRadius);
+			fXS = sinf(nCnt * ((D3DX_PI * 2.0f) / block.x)) * (size.x + fRadius);
+			fZS = cosf(nCnt * ((D3DX_PI * 2.0f) / block.x)) * (size.x + fRadius);
 
-			fXE = sinf((nCnt + 1) * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x + fRadius);
-			fZE = cosf((nCnt + 1) * ((D3DX_PI * 2.0f) / m_block.x)) * (m_size.x + fRadius);
+			fXE = sinf((nCnt + 1) * ((D3DX_PI * 2.0f) / block.x)) * (size.x + fRadius);
+			fZE = cosf((nCnt + 1) * ((D3DX_PI * 2.0f) / block.x)) * (size.x + fRadius);
 		}
 
 		// 始点
@@ -492,7 +497,7 @@ bool CMeshCylinder::Collision(D3DXVECTOR3* pPos, D3DXVECTOR3* pPosOld, D3DXVECTO
 				(m_bInside == false && fPosLine > 0.0f && (fPosOldLine <= 0.0f)))
 			{// 交差した
 				if ((pos.y - fHeight <= pPos->y) &&
-					(pos.y + m_size.y >= pPos->y))
+					(pos.y + size.y >= pPos->y))
 				{// 高さが合っている
 					bColl = true;
 

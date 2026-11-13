@@ -193,7 +193,12 @@ void CConsole::Update(void)
 
 	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
 	{// ファイル書き出し
-		pMeshManager->WriteData("data\\mesh.txt");
+		pMeshManager->WriteData("data\\mesh.txt", "data\\mesh.bin");
+	}
+	
+	if (pInputKeyboard->GetTrigger(DIK_F10) == true)
+	{// ファイル書き出し
+		pMeshManager->ReadData("data\\mesh.bin");
 	}
 
 	// 配置に関するコメント
@@ -209,6 +214,7 @@ void CConsole::Update(void)
 	pDebugProc->Print("サイズ [ ←/→ ] : ( %f %f )\n", m_size.x, m_size.y);
 	pDebugProc->Print("リセット [ F6 ]\n");
 	pDebugProc->Print("書き出し [ F9 ]\n");
+	pDebugProc->Print("読み込み [ F10 ]\n");
 
 	if (pMesh != nullptr)
 	{// NULLチェック
@@ -216,7 +222,11 @@ void CConsole::Update(void)
 		pDebugProc->Print("\n****** 頂点操作 ******\n");
 		pDebugProc->Print("頂点の選択 [ Q ←→ E ]\n");
 		pDebugProc->Print("現在の頂点番号 ( %d )\n", pMesh->GetVtxIdx());
+		pDebugProc->Print("現在の位置 ( %f %f %f )\n", pMesh->GetPosition().x, pMesh->GetPosition().y, pMesh->GetPosition().z);
 		pDebugProc->Print("現在の向き ( %f %f %f )\n", pMesh->GetRotation().x, pMesh->GetRotation().y, pMesh->GetRotation().z);
+		pDebugProc->Print("全体X軸移動 [ 4 > 6 ]\n");
+		pDebugProc->Print("全体Y軸移動 [ 8 > 5 ]\n");
+		pDebugProc->Print("全体Z軸移動 [ 1 > 3 ]\n");
 		pDebugProc->Print("X軸回転 [ W > S ]\n");
 		pDebugProc->Print("Y軸回転 [ A > D ]\n");
 		pDebugProc->Print("Z軸回転 [ Z > C ]\n");

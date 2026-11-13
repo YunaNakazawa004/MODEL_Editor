@@ -44,8 +44,6 @@ public:
 	void SetTexMScrollAll(const float fScrollU, const float fScrollV);
 	void SetTexMBig(void);
 	void SetTexMSmall(void);
-	D3DXVECTOR2 GetSize(void) { return m_size; }
-	D3DXVECTOR2 GetBlock(void) { return m_block; }
 	int GetNumVtx(void) { return m_nNumVtx; }
 	int GetNumIdx(void) { return m_nNumIdx; }
 	void SetNor(void);
@@ -56,8 +54,6 @@ public:
 
 private:
 	int m_aIdxTexture[2];							// テクスチャのインデックス
-	D3DXVECTOR2 m_block;		// 分割数
-	D3DXVECTOR2 m_size;			// サイズ
 	D3DXCOLOR m_col;			// 色
 	int m_nNumVtx;				// 頂点の総数
 	int m_nNumIdx;				// インデックスの総数

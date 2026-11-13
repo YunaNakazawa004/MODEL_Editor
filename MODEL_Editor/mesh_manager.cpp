@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <string>
 
 //************************************************************************
 // マクロ定義
@@ -112,14 +113,16 @@ void CMeshManager::ResetData(void)
 //========================================================================
 // メッシュマネージャーの書き込み処理
 //========================================================================
-HRESULT CMeshManager::WriteData(const char* pFilename)
+HRESULT CMeshManager::WriteData(const char* pFilenameTxt, const char* pFilenameBin)
 {
 	if (m_apMesh == nullptr)
 	{// NULLチェック
 		return E_FAIL;
 	}
 
-	HRESULT hr = m_apMesh->WriteData(pFilename);
+	HRESULT hr = m_apMesh->WriteTxtData(pFilenameTxt);
+
+	hr = m_apMesh->WriteBinData(pFilenameBin);
 
 	return hr;
 }
@@ -135,25 +138,50 @@ HRESULT CMeshManager::ReadData(const char* pFilename)
 	if (file.is_open() == true)
 	{// ファイルが開けた
 		// 現在のオブジェクトを破棄
-		Uninit();
+		ResetData();
 
-		// カウントリセット
-		int type = 0;
-		m_nNumObject = 0;
+		D3DXVECTOR3 pos, rot;
+		D3DXVECTOR2 block, size;
+		int type;
+		int nNumVtx = 0, nNumIdx = 0;
 
-		// ファイルから読み込む
+		// 読み込む
 		file.read((char*)&type, sizeof(type));
+		file.read((char*)&pos, sizeof(pos));
+		file.read((char*)&rot, sizeof(rot));
+		file.read((char*)&block, sizeof(block));
+		file.read((char*)&size, sizeof(size));
+		file.read((char*)&nNumVtx, sizeof(nNumVtx));
+		file.read((char*)&nNumIdx, sizeof(nNumIdx));
 
 		// オブジェクトの生成
-		Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, DEFAULT_VECTOR2, DEFAULT_VECTOR2, type);
+		Create(pos, rot, block, size, type);
 
-		HRESULT hr = m_apMesh->ReadData(pFilename);
+		// 頂点情報の読み込み
+		VERTEX_3D* pVtx;
+		DWORD* pIdx;
 
-		// 総数を確認
-		if (hr != S_OK)
-		{// もし違ったら
-			OutputDebugStringA("! ! ! メッシュマネージャーの読み込みに失敗しました ! ! !\n");
+		// 頂点バッファをロックし、頂点情報へのポインタを取得
+		m_apMesh->GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
+
+		for (int nCntVtx = 0; nCntVtx < nNumVtx; nCntVtx++)
+		{
+			file.read((char*)&pVtx[nCntVtx], sizeof(*pVtx));
 		}
+
+		// 頂点バッファをアンロックする
+		m_apMesh->GetVtxBuff()->Unlock();
+
+		// インデックスバッファをロックし、頂点番号データへのポインタを取得
+		m_apMesh->GetIdxBuff()->Lock(0, 0, (void**)&pIdx, 0);
+
+		for (int nCntIdx = 0; nCntIdx < nNumIdx; nCntIdx++)
+		{
+			file.read((char*)&pIdx[nCntIdx], sizeof(*pIdx));
+		}
+
+		// インデックスバッファをアンロックする
+		m_apMesh->GetIdxBuff()->Unlock();
 
 		// ファイルを閉じる
 		file.close();

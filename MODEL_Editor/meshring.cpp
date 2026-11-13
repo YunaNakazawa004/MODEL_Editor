@@ -70,8 +70,6 @@ CMeshRing* CMeshRing::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 move, cons
 CMeshRing::CMeshRing(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュリングクラスの値をクリア
-	m_block = DEFAULT_VECTOR2;
-	m_size = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
 	m_nNumVtx = 0;
 	m_nNumIdx = 0;
@@ -99,12 +97,12 @@ HRESULT CMeshRing::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 move, const D3D
 	SetPosition(pos);
 	SetRotation(rot);
 	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
+	SetBlock(block);
+	CMesh::SetSize(size);
 	m_move = move;
-	m_block = block;
-	m_size = size;
 	m_col = col;
-	m_nNumVtx = (((int)m_block.x + 1) * ((int)m_block.y + 1));
-	m_nNumIdx = (((int)m_block.x + 1) * 2) * ((int)m_block.y);
+	m_nNumVtx = (((int)block.x + 1) * ((int)block.y + 1));
+	m_nNumIdx = (((int)block.x + 1) * 2) * ((int)block.y);
 
 	// 頂点バッファを生成
 	if (FAILED(CreateVtxBuff(m_nNumVtx)))
@@ -116,17 +114,17 @@ HRESULT CMeshRing::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 move, const D3D
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshRing1 = 0; nCntMeshRing1 < (int)m_block.y + 1; nCntMeshRing1++)
+	for (int nCntMeshRing1 = 0; nCntMeshRing1 < (int)block.y + 1; nCntMeshRing1++)
 	{
-		for (int nCntMeshRing2 = 0; nCntMeshRing2 < (int)m_block.x + 1; nCntMeshRing2++)
+		for (int nCntMeshRing2 = 0; nCntMeshRing2 < (int)block.x + 1; nCntMeshRing2++)
 		{
-			float fAngle = ((D3DX_PI * 2.0f) / m_block.x);
-			float fSize = (m_size.x + (m_size.y * -(float)((nCntMeshRing2 + (nCntMeshRing1 * (((int)m_block.x) + 1))) % ((int)m_block.y + 1))));
+			float fAngle = ((D3DX_PI * 2.0f) / block.x);
+			float fSize = (size.x + (size.y * -(float)((nCntMeshRing2 + (nCntMeshRing1 * (((int)block.x) + 1))) % ((int)block.y + 1))));
 
 			// 頂点座標の設定
-			pVtx[0].pos.x = sinf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * -fAngle) * fSize;
+			pVtx[0].pos.x = sinf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)block.x + 1))) / ((int)block.y + 1)) * -fAngle) * fSize;
 			pVtx[0].pos.y = 0.0f;
-			pVtx[0].pos.z = cosf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * fAngle) * fSize;
+			pVtx[0].pos.z = cosf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)block.x + 1))) / ((int)block.y + 1)) * fAngle) * fSize;
 
 			// 法線ベクトルの設定
 			pVtx[0].nor = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
@@ -157,7 +155,7 @@ HRESULT CMeshRing::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 move, const D3D
 	for (int nCntMeshRing1 = 0; nCntMeshRing1 < m_nNumIdx / 2; nCntMeshRing1++)
 	{
 		// 今作っている円の外側の頂点番号
-		int nOuter = (nCntMeshRing1 % ((int)m_block.x + 1)) * ((int)m_block.y + 1) + (nCntMeshRing1 / ((int)m_block.x + 1));
+		int nOuter = (nCntMeshRing1 % ((int)block.x + 1)) * ((int)block.y + 1) + (nCntMeshRing1 / ((int)block.x + 1));
 
 		pIdx[0] = (DWORD)nOuter;
 		pIdx[1] = (DWORD)nOuter + 1;
@@ -286,22 +284,23 @@ D3DXVECTOR3 CMeshRing::GetPosVtx(const int nCntVtx)
 void CMeshRing::SetSize(const D3DXVECTOR2 size)
 {
 	VERTEX_3D* pVtx;					// 頂点情報へのポインタ
+	D3DXVECTOR2 block = GetBlock();
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshRing1 = 0; nCntMeshRing1 < (int)m_block.y + 1; nCntMeshRing1++)
+	for (int nCntMeshRing1 = 0; nCntMeshRing1 < (int)block.y + 1; nCntMeshRing1++)
 	{
-		for (int nCntMeshRing2 = 0; nCntMeshRing2 < (int)m_block.x + 1; nCntMeshRing2++)
+		for (int nCntMeshRing2 = 0; nCntMeshRing2 < (int)block.x + 1; nCntMeshRing2++)
 		{
-			float fAngle = ((D3DX_PI * 2.0f) / m_block.x);
-			float fSize = (m_size.x + (m_size.y * -(float)((nCntMeshRing2 + (nCntMeshRing1 * (((int)m_block.x) + 1))) % ((int)m_block.y + 1))));
+			float fAngle = ((D3DX_PI * 2.0f) / block.x);
+			float fSize = (size.x + (size.y * -(float)((nCntMeshRing2 + (nCntMeshRing1 * (((int)block.x) + 1))) % ((int)block.y + 1))));
 
 			// 頂点座標の設定
-			pVtx[0].pos.x = sinf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * -fAngle) * fSize;
+			pVtx[0].pos.x = sinf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)block.x + 1))) / ((int)block.y + 1)) * -fAngle) * fSize;
 			pVtx[0].pos.y = 0.0f;
-			pVtx[0].pos.z = cosf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)m_block.x + 1))) / ((int)m_block.y + 1)) * fAngle) * fSize;
+			pVtx[0].pos.z = cosf((float)((nCntMeshRing2 + (nCntMeshRing1 * ((int)block.x + 1))) / ((int)block.y + 1)) * fAngle) * fSize;
 
 			pVtx++;
 		}

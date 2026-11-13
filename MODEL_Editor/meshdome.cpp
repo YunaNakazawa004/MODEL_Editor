@@ -71,7 +71,6 @@ CMeshDome::CMeshDome(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュドームクラスの値をクリア
 	m_fRadius = 0.0f;
-	m_block = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
 	m_nNumVtx = 0;
 	m_nNumIdx = 0;
@@ -99,17 +98,18 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	SetPosition(pos);
 	SetRotation(rot);
 	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-	m_block = block;
+	SetBlock(block);
+	SetSize(D3DXVECTOR2(fRadius, fRadius));
 	m_fRadius = fRadius;
 
 	// 頂点バッファの数
-	int nNumVtxCylinder = ((int)m_block.x + 1) * ((int)m_block.y + 1);
-	int nNumVtxFan = (int)m_block.x + 1;
+	int nNumVtxCylinder = ((int)block.x + 1) * ((int)block.y + 1);
+	int nNumVtxFan = (int)block.x + 1;
 	m_nNumVtx = nNumVtxCylinder + nNumVtxFan;
 
 	// インデックスバッファの数
-	int nNumIdxCylinder = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
-	int nNumIdxFan = (int)m_block.x + 2;
+	int nNumIdxCylinder = (((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4) + 2;
+	int nNumIdxFan = (int)block.x + 2;
 	m_nNumIdx = nNumIdxCylinder + nNumIdxFan;
 
 	// 頂点バッファを生成
@@ -121,8 +121,8 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
-	float fAngleX = ((D3DX_PI * 2.0f) / m_block.x);
-	float fAngleY = (D3DX_PI / 2.0f) / (m_block.y + 1);
+	float fAngleX = ((D3DX_PI * 2.0f) / block.x);
+	float fAngleY = (D3DX_PI / 2.0f) / (block.y + 1);
 
 	for (int nCntMeshDome1 = 0; nCntMeshDome1 < nNumVtxFan; nCntMeshDome1++)
 	{
@@ -154,9 +154,9 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	}
 
 	// 頂点情報の設定
-	for (int nCntMeshDome1 = 0; nCntMeshDome1 < (int)m_block.y + 1; nCntMeshDome1++)
+	for (int nCntMeshDome1 = 0; nCntMeshDome1 < (int)block.y + 1; nCntMeshDome1++)
 	{
-		for (int nCntMeshDome2 = 0; nCntMeshDome2 < (int)m_block.x + 1; nCntMeshDome2++)
+		for (int nCntMeshDome2 = 0; nCntMeshDome2 < (int)block.x + 1; nCntMeshDome2++)
 		{
 			// 頂点座標の設定
 			pVtx[0].pos.x = sinf(nCntMeshDome2 * fAngleX) * m_fRadius * sinf(fAngleY * (nCntMeshDome1 + 1));
@@ -171,7 +171,7 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 			pVtx[0].col = COLOR_WHITE;
 
 			// テクスチャ座標の設定
-			pVtx[0].tex = D3DXVECTOR2((float)nCntMeshDome2 / (m_block.y * 0.25f), (float)nCntMeshDome1 / (m_block.x * 0.25f));
+			pVtx[0].tex = D3DXVECTOR2((float)nCntMeshDome2 / (block.y * 0.25f), (float)nCntMeshDome1 / (block.x * 0.25f));
 
 			pVtx++;
 		}
@@ -207,17 +207,17 @@ HRESULT CMeshDome::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	// 頂点番号データの設定
 	for (int nCntMeshDome1 = 0; nCntMeshDome1 < nNumIdxCylinder / 2; nCntMeshDome1++)
 	{
-		if (nCntMeshDome1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
+		if (nCntMeshDome1 % ((int)block.x + 2) == ((int)block.x + 1))
 		{// 縮退ポリゴンのところ
 			nNum++;
 
-			pIdx[0] = ((int)m_block.x + 1) + nCntMeshDome1 - nNum;
-			pIdx[1] = ((int)m_block.x + 1) + nCntMeshDome1 - nNum + ((int)m_block.x + 2);
+			pIdx[0] = ((int)block.x + 1) + nCntMeshDome1 - nNum;
+			pIdx[1] = ((int)block.x + 1) + nCntMeshDome1 - nNum + ((int)block.x + 2);
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = ((int)m_block.x + 1) + (nCntMeshDome1 - nNum) + ((int)m_block.x + 1);
-			pIdx[1] = ((int)m_block.x + 1) + (nCntMeshDome1 - nNum);
+			pIdx[0] = ((int)block.x + 1) + (nCntMeshDome1 - nNum) + ((int)block.x + 1);
+			pIdx[1] = ((int)block.x + 1) + (nCntMeshDome1 - nNum);
 		}
 
 		pIdx += 2;
@@ -261,6 +261,7 @@ void CMeshDome::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
+	D3DXVECTOR2 block = GetBlock();
 
 	// マトリックスを計算
 	CMesh::Draw();
@@ -282,14 +283,14 @@ void CMeshDome::Draw(void)
 
 	// ポリゴンの描画(FAN)
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLEFAN, 0, 0,
-		((int)m_block.x + 1), 0,
-		((int)m_block.x));
+		((int)block.x + 1), 0,
+		((int)block.x));
 
 	// ポリゴンの描画(STRIP)
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0,
-		((int)m_block.x + 1) * ((int)m_block.y + 1),
-		((int)m_block.x + 2),
-		(((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4));
+		((int)block.x + 1) * ((int)block.y + 1),
+		((int)block.x + 2),
+		(((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4));
 
 	// ライティングオン
 	pDevice->SetRenderState(D3DRS_LIGHTING, TRUE);

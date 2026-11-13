@@ -74,8 +74,6 @@ CMeshField::CMeshField(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュフィールドクラスの値をクリア
 	memset(&m_nIdxTexture, -1, sizeof m_nIdxTexture);
-	m_block = D3DXVECTOR2(0.0f, 0.0f);
-	m_size = D3DXVECTOR2(0.0f, 0.0f);
 	m_col = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	m_nNumVtx = 0;
 	m_nNumIdx = 0;
@@ -103,10 +101,10 @@ HRESULT CMeshField::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	SetPosition(pos);
 	SetRotation(rot);
 	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-	m_block = block;
-	m_size = size;
-	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
-	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
+	SetBlock(block);
+	SetSize(size);
+	m_nNumVtx = ((int)block.x + 1) * ((int)block.y + 1);
+	m_nNumIdx = (((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4) + 2;
 
 	// 頂点バッファを生成
 	if (FAILED(CreateVtxBuffMulti(m_nNumVtx)))
@@ -118,17 +116,17 @@ HRESULT CMeshField::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)m_block.y + 1; nCntMeshField1++)
+	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)block.y + 1; nCntMeshField1++)
 	{
-		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)m_block.x + 1; nCntMeshField2++)
+		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)block.x + 1; nCntMeshField2++)
 		{
 			// 頂点番号
-			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)m_block.x + 1));
+			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)block.x + 1));
 
 			// 頂点座標の設定
-			pVtx[nVtx].pos.x = ((float)nCntMeshField2 * m_size.x * 2.0f) - ((m_block.x * m_size.x * 2.0f) * 0.5f);
+			pVtx[nVtx].pos.x = ((float)nCntMeshField2 * size.x * 2.0f) - ((block.x * size.x * 2.0f) * 0.5f);
 			pVtx[nVtx].pos.y = 0.0f;
-			pVtx[nVtx].pos.z = -((float)nCntMeshField1 * m_size.y * 2.0f) + ((m_block.y * m_size.y * 2.0f) * 0.5f);
+			pVtx[nVtx].pos.z = -((float)nCntMeshField1 * size.y * 2.0f) + ((block.y * size.y * 2.0f) * 0.5f);
 
 			// 頂点カラーの設定
 			pVtx[nVtx].col = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
@@ -158,16 +156,16 @@ HRESULT CMeshField::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	// 頂点番号データの設定
 	for (int nCntMeshField1 = 0; nCntMeshField1 < (m_nNumIdx / 2); nCntMeshField1++)
 	{
-		if (nCntMeshField1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
+		if (nCntMeshField1 % ((int)block.x + 2) == ((int)block.x + 1))
 		{// 縮退ポリゴンのところ
 			pIdx[0] = (nCntMeshField1 - nNum) - 1;
-			pIdx[1] = (nCntMeshField1 - nNum) + ((int)m_block.x + 1);
+			pIdx[1] = (nCntMeshField1 - nNum) + ((int)block.x + 1);
 
 			nNum++;
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = (nCntMeshField1 - nNum) + ((int)m_block.x + 1);
+			pIdx[0] = (nCntMeshField1 - nNum) + ((int)block.x + 1);
 			pIdx[1] = (nCntMeshField1 - nNum);
 		}
 
@@ -212,6 +210,7 @@ void CMeshField::Draw(void)
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
+	D3DXVECTOR2 block = GetBlock();
 
 	// マトリックスを計算
 	CMesh::Draw();
@@ -229,8 +228,8 @@ void CMeshField::Draw(void)
 	pDevice->SetTexture(0, pTexture->GetAddress(m_nIdxTexture));
 
 	// ポリゴンの描画
-	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, ((int)m_block.x + 1) * ((int)m_block.y + 1), 0,
-		(((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4));
+	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, ((int)block.x + 1) * ((int)block.y + 1), 0,
+		(((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4));
 }
 
 //========================================================================
@@ -353,17 +352,18 @@ void CMeshField::SetNor(void)
 {
 	VERTEX_3D* pVtx;					// 頂点情報へのポインタ
 	D3DXVECTOR3 nor, nor1, nor2, nor3, nor4, nor5, nor6, vec1, vec2;
+	D3DXVECTOR2 block = GetBlock();
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 法線の設定
-	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)m_block.y + 1; nCntMeshField1++)
+	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)block.y + 1; nCntMeshField1++)
 	{
-		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)m_block.x + 1; nCntMeshField2++)
+		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)block.x + 1; nCntMeshField2++)
 		{
 			// 頂点番号
-			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)m_block.x + 1));
+			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)block.x + 1));
 
 			D3DXVECTOR3 vec1, vec2;
 			D3DXVECTOR3 nor, norA, norB, norC, norD, norE, norF;
@@ -371,9 +371,9 @@ void CMeshField::SetNor(void)
 			nor = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
 
 			// 法線の設定
-			if ((nCntMeshField1 == 0 && nCntMeshField2 == (int)m_block.x))
+			if ((nCntMeshField1 == 0 && nCntMeshField2 == (int)block.x))
 			{// 法線ひとつ(右上)(▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -382,9 +382,9 @@ void CMeshField::SetNor(void)
 				// 正規化
 				D3DXVec3Normalize(&nor, &nor);
 			}
-			else if (nCntMeshField1 == (int)m_block.y && nCntMeshField2 == 0)
+			else if (nCntMeshField1 == (int)block.y && nCntMeshField2 == 0)
 			{// 法線ひとつ(左下)(△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -396,9 +396,9 @@ void CMeshField::SetNor(void)
 			else if (nCntMeshField1 == 0 && nCntMeshField2 == 0)
 			{// 法線ふたつ(左上)
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -410,7 +410,7 @@ void CMeshField::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -421,12 +421,12 @@ void CMeshField::SetNor(void)
 
 				nor = (norA + norB) / 2.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshField1 == (int)m_block.y && nCntMeshField2 == (int)m_block.x)
+			else if (nCntMeshField1 == (int)block.y && nCntMeshField2 == (int)block.x)
 			{// 法線ふたつ(右下)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -436,9 +436,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -452,7 +452,7 @@ void CMeshField::SetNor(void)
 			else if (nCntMeshField1 == 0)
 			{// 法線みっつ(上の辺)
 				// (▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -462,9 +462,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -476,7 +476,7 @@ void CMeshField::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -487,10 +487,10 @@ void CMeshField::SetNor(void)
 
 				nor = (norA + norB + norC) / 3.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshField1 == (int)m_block.y)
+			else if (nCntMeshField1 == (int)block.y)
 			{// 法線みっつ(下の辺)
 				// (△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -502,7 +502,7 @@ void CMeshField::SetNor(void)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -512,9 +512,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norB, &norB);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -528,7 +528,7 @@ void CMeshField::SetNor(void)
 			else if (nCntMeshField2 == 0)
 			{// 法線みっつ(左の辺)
 				// (△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -538,9 +538,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -552,7 +552,7 @@ void CMeshField::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -563,10 +563,10 @@ void CMeshField::SetNor(void)
 
 				nor = (norA + norB + norC) / 3.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshField2 == (int)m_block.x)
+			else if (nCntMeshField2 == (int)block.x)
 			{// 法線みっつ(右の辺)
 				// (▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -578,7 +578,7 @@ void CMeshField::SetNor(void)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -588,9 +588,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norB, &norB);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -604,7 +604,7 @@ void CMeshField::SetNor(void)
 			else
 			{// 中心部
 				// (右上△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -614,7 +614,7 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (左下▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -626,7 +626,7 @@ void CMeshField::SetNor(void)
 				// (左上△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -636,9 +636,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norC, &norC);
 
 				// (左上▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -648,9 +648,9 @@ void CMeshField::SetNor(void)
 				D3DXVec3Normalize(&norD, &norD);
 
 				// (右下△)
-				nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -662,7 +662,7 @@ void CMeshField::SetNor(void)
 				// (右下▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -794,17 +794,19 @@ D3DXVECTOR2 CMeshField::GetPolygonIdx(const D3DXVECTOR3 pos)
 	D3DXVECTOR3 posM = GetPosition();
 	D3DXVECTOR2 posP;			// 与えられた位置のオフセット位置
 	D3DXVECTOR2 posOff;			// メッシュフィールドのオフセット位置
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
 
 	// オフセット位置を算出
-	posP.x = pos.x + (m_size.x * m_block.x);
-	posP.y = pos.z - (m_size.y * m_block.y);
-	posOff.x = posM.x + (m_size.x * m_block.x);
-	posOff.y = posM.z - (m_size.y * m_block.y);
+	posP.x = pos.x + (size.x * block.x);
+	posP.y = pos.z - (size.y * block.y);
+	posOff.x = posM.x + (size.x * block.x);
+	posOff.y = posM.z - (size.y * block.y);
 
-	polygonIdx.x = (posP.x / (m_size.x * 2.0f));
-	polygonIdx.y = (posP.y / -(m_size.y * 2.0f));
+	polygonIdx.x = (posP.x / (size.x * 2.0f));
+	polygonIdx.y = (posP.y / -(size.y * 2.0f));
 
-	if (polygonIdx.x >= 0 && polygonIdx.x < m_block.x && polygonIdx.y >= 0 && polygonIdx.y < m_block.y)
+	if (polygonIdx.x >= 0 && polygonIdx.x < block.x && polygonIdx.y >= 0 && polygonIdx.y < block.y)
 	{// 範囲内の数値
 		return polygonIdx;
 	}
@@ -825,9 +827,11 @@ float CMeshField::GetHeight(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	// ローカル変数
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	D3DXVECTOR3 aVecLine[3], aVecToPos[3];		// 境界線ベクトル、現在位置へのベクトル
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
 	float fposLine;			// 外積
 	int nCntLine = 0;		// 内側にいた回数
-	int nVtx = (int)polygonIdx.x + ((int)polygonIdx.y * ((int)m_block.x + 1));		// 現在位置の頂点
+	int nVtx = (int)polygonIdx.x + ((int)polygonIdx.y * ((int)block.x + 1));		// 現在位置の頂点
 	int nMainVtx = -1;		// 主となる頂点
 	VERTEX_3D* pVtx;
 
@@ -835,16 +839,16 @@ float CMeshField::GetHeight(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 下の点を主頂点にする(△)
-	nMainVtx = nVtx + (int)m_block.x + 1;
+	nMainVtx = nVtx + (int)block.x + 1;
 
-	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx - m_block.x + 1) - nMainVtx + 1)の内側にいるかどうか
-	// nMainVtx - (nMainVtx - (int)m_block.x + 1) 間のベクトル
-	aVecLine[0] = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
+	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx - block.x + 1) - nMainVtx + 1)の内側にいるかどうか
+	// nMainVtx - (nMainVtx - (int)block.x + 1) 間のベクトル
+	aVecLine[0] = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
 	aVecToPos[0] = pos - pVtx[nMainVtx].pos;										// 現在位置へのベクトル
 
-	// (nMainVtx - (int)m_block.x + 1) - nMainVtx + 1 間のベクトル
-	aVecLine[1] = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx - ((int)m_block.x + 1)].pos;	// 辺のベクトル
-	aVecToPos[1] = pos - pVtx[nMainVtx - ((int)m_block.x + 1)].pos;					// 現在位置へのベクトル
+	// (nMainVtx - (int)block.x + 1) - nMainVtx + 1 間のベクトル
+	aVecLine[1] = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx - ((int)block.x + 1)].pos;	// 辺のベクトル
+	aVecToPos[1] = pos - pVtx[nMainVtx - ((int)block.x + 1)].pos;					// 現在位置へのベクトル
 
 	// nMainVtx + 1 - nMainVtx 間のベクトル
 	aVecLine[2] = pVtx[nMainVtx].pos - pVtx[nMainVtx + 1].pos;						// 辺のベクトル
@@ -862,12 +866,12 @@ float CMeshField::GetHeight(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	}
 
 	if (nCntLine >= 3)
-	{// 対象ポリゴン(nMainVtx - (nMainVtx - m_block.x + 1) - nMainVtx + 1)の内側にいる
+	{// 対象ポリゴン(nMainVtx - (nMainVtx - block.x + 1) - nMainVtx + 1)の内側にいる
 		D3DXVECTOR3 vec1, vec2, nor;	// ベクトル、法線
 		float fHeight = 0.0f;			// 求める高さ
 
 		// ベクトルを取得
-		vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+		vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 		vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 		// 法線の計算
@@ -896,14 +900,14 @@ float CMeshField::GetHeight(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	// 右の点を主頂点にする(▽)
 	nMainVtx = nVtx + 1;
 
-	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx + m_block.x + 1) - (nMainVtx - 1))の内側にいるかどうか
-	// nMainVtx - (nMainVtx + (int)m_block.x + 1) 間のベクトル
-	aVecLine[0] = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
+	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx + block.x + 1) - (nMainVtx - 1))の内側にいるかどうか
+	// nMainVtx - (nMainVtx + (int)block.x + 1) 間のベクトル
+	aVecLine[0] = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
 	aVecToPos[0] = pos - pVtx[nMainVtx].pos;										// 現在位置へのベクトル
 
-	// (nMainVtx + (int)m_block.x + 1) - (nMainVtx - 1) 間のベクトル
-	aVecLine[1] = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx + ((int)m_block.x + 1)].pos;	// 辺のベクトル
-	aVecToPos[1] = pos - pVtx[nMainVtx + ((int)m_block.x + 1)].pos;					// 現在位置へのベクトル
+	// (nMainVtx + (int)block.x + 1) - (nMainVtx - 1) 間のベクトル
+	aVecLine[1] = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx + ((int)block.x + 1)].pos;	// 辺のベクトル
+	aVecToPos[1] = pos - pVtx[nMainVtx + ((int)block.x + 1)].pos;					// 現在位置へのベクトル
 
 	// (nMainVtx - 1) - nMainVtx 間のベクトル
 	aVecLine[2] = pVtx[nMainVtx].pos - pVtx[nMainVtx - 1].pos;						// 辺のベクトル
@@ -926,7 +930,7 @@ float CMeshField::GetHeight(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 		float fHeight = 0.0f;			// 求める高さ
 
 		// ベクトルを取得
-		vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+		vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 		vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 		// 法線の計算
@@ -974,9 +978,11 @@ float CMeshField::GetSlope(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	// ローカル変数
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	D3DXVECTOR3 aVecLine[3], aVecToPos[3];		// 境界線ベクトル、現在位置へのベクトル
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
 	float fposLine;			// 外積
 	int nCntLine = 0;		// 内側にいた回数
-	int nVtx = (int)polygonIdx.x + ((int)polygonIdx.y * ((int)m_block.x + 1));		// 現在位置の頂点
+	int nVtx = (int)polygonIdx.x + ((int)polygonIdx.y * ((int)block.x + 1));		// 現在位置の頂点
 	int nMainVtx = -1;		// 主となる頂点
 	VERTEX_3D* pVtx;
 
@@ -984,16 +990,16 @@ float CMeshField::GetSlope(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 下の点を主頂点にする(△)
-	nMainVtx = nVtx + (int)m_block.x + 1;
+	nMainVtx = nVtx + (int)block.x + 1;
 
-	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx - m_block.x + 1) - nMainVtx + 1)の内側にいるかどうか
-	// nMainVtx - (nMainVtx - (int)m_block.x + 1) 間のベクトル
-	aVecLine[0] = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
+	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx - block.x + 1) - nMainVtx + 1)の内側にいるかどうか
+	// nMainVtx - (nMainVtx - (int)block.x + 1) 間のベクトル
+	aVecLine[0] = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
 	aVecToPos[0] = pos - pVtx[nMainVtx].pos;										// 現在位置へのベクトル
 
-	// (nMainVtx - (int)m_block.x + 1) - nMainVtx + 1 間のベクトル
-	aVecLine[1] = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx - ((int)m_block.x + 1)].pos;	// 辺のベクトル
-	aVecToPos[1] = pos - pVtx[nMainVtx - ((int)m_block.x + 1)].pos;					// 現在位置へのベクトル
+	// (nMainVtx - (int)block.x + 1) - nMainVtx + 1 間のベクトル
+	aVecLine[1] = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx - ((int)block.x + 1)].pos;	// 辺のベクトル
+	aVecToPos[1] = pos - pVtx[nMainVtx - ((int)block.x + 1)].pos;					// 現在位置へのベクトル
 
 	// nMainVtx + 1 - nMainVtx 間のベクトル
 	aVecLine[2] = pVtx[nMainVtx].pos - pVtx[nMainVtx + 1].pos;						// 辺のベクトル
@@ -1011,12 +1017,12 @@ float CMeshField::GetSlope(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	}
 
 	if (nCntLine >= 3)
-	{// 対象ポリゴン(nMainVtx - (nMainVtx - m_block.x + 1) - nMainVtx + 1)の内側にいる
+	{// 対象ポリゴン(nMainVtx - (nMainVtx - block.x + 1) - nMainVtx + 1)の内側にいる
 		D3DXVECTOR3 vec1, vec2, nor;	// ベクトル、法線
 		float fHeight = 0.0f;			// 求める高さ
 
 		// ベクトルを取得
-		vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+		vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 		vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 		// 法線の計算
@@ -1035,14 +1041,14 @@ float CMeshField::GetSlope(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 	// 右の点を主頂点にする(▽)
 	nMainVtx = nVtx + 1;
 
-	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx + m_block.x + 1) - (nMainVtx - 1))の内側にいるかどうか
-	// nMainVtx - (nMainVtx + (int)m_block.x + 1) 間のベクトル
-	aVecLine[0] = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
+	// プレイヤーが対象ポリゴン(nMainVtx - (nMainVtx + block.x + 1) - (nMainVtx - 1))の内側にいるかどうか
+	// nMainVtx - (nMainVtx + (int)block.x + 1) 間のベクトル
+	aVecLine[0] = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;		// 辺のベクトル
 	aVecToPos[0] = pos - pVtx[nMainVtx].pos;										// 現在位置へのベクトル
 
-	// (nMainVtx + (int)m_block.x + 1) - (nMainVtx - 1) 間のベクトル
-	aVecLine[1] = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx + ((int)m_block.x + 1)].pos;	// 辺のベクトル
-	aVecToPos[1] = pos - pVtx[nMainVtx + ((int)m_block.x + 1)].pos;					// 現在位置へのベクトル
+	// (nMainVtx + (int)block.x + 1) - (nMainVtx - 1) 間のベクトル
+	aVecLine[1] = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx + ((int)block.x + 1)].pos;	// 辺のベクトル
+	aVecToPos[1] = pos - pVtx[nMainVtx + ((int)block.x + 1)].pos;					// 現在位置へのベクトル
 
 	// (nMainVtx - 1) - nMainVtx 間のベクトル
 	aVecLine[2] = pVtx[nMainVtx].pos - pVtx[nMainVtx - 1].pos;						// 辺のベクトル
@@ -1065,7 +1071,7 @@ float CMeshField::GetSlope(const D3DXVECTOR3 pos, const D3DXVECTOR2 polygonIdx)
 		float fHeight = 0.0f;			// 求める高さ
 
 		// ベクトルを取得
-		vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+		vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 		vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 		// 法線の計算
@@ -1097,22 +1103,24 @@ void CMeshField::ResetData(void)
 {
 	VERTEX_3D* pVtx;
 	DWORD* pIdx;
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)m_block.y + 1; nCntMeshField1++)
+	for (int nCntMeshField1 = 0; nCntMeshField1 < (int)block.y + 1; nCntMeshField1++)
 	{
-		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)m_block.x + 1; nCntMeshField2++)
+		for (int nCntMeshField2 = 0; nCntMeshField2 < (int)block.x + 1; nCntMeshField2++)
 		{
 			// 頂点番号
-			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)m_block.x + 1));
+			int nVtx = nCntMeshField2 + (nCntMeshField1 * ((int)block.x + 1));
 
 			// 頂点座標の設定
-			pVtx[nVtx].pos.x = -((m_block.x * m_size.x * 2.0f) * 0.5f) + (nCntMeshField2 * m_size.x * 2.0f);
+			pVtx[nVtx].pos.x = -((block.x * size.x * 2.0f) * 0.5f) + (nCntMeshField2 * size.x * 2.0f);
 			pVtx[nVtx].pos.y = 0.0f;
-			pVtx[nVtx].pos.z = ((m_block.y * m_size.y * 2.0f) * 0.5f) - (nCntMeshField1 * m_size.y * 2.0f);
+			pVtx[nVtx].pos.z = ((block.y * size.y * 2.0f) * 0.5f) - (nCntMeshField1 * size.y * 2.0f);
 
 			// 頂点カラーの設定
 			pVtx[nVtx].col = COLOR_WHITE;
@@ -1136,16 +1144,16 @@ void CMeshField::ResetData(void)
 	// 頂点番号データの設定
 	for (int nCntMeshField1 = 0; nCntMeshField1 < m_nNumIdx / 2; nCntMeshField1++)
 	{
-		if (nCntMeshField1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
+		if (nCntMeshField1 % ((int)block.x + 2) == ((int)block.x + 1))
 		{// 縮退ポリゴンのところ
 			pIdx[0] = (nCntMeshField1 - nNum) - 1;
-			pIdx[1] = (nCntMeshField1 - nNum) + ((int)m_block.x + 1);
+			pIdx[1] = (nCntMeshField1 - nNum) + ((int)block.x + 1);
 
 			nNum++;
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = (nCntMeshField1 - nNum) + ((int)m_block.x + 1);
+			pIdx[0] = (nCntMeshField1 - nNum) + ((int)block.x + 1);
 			pIdx[1] = (nCntMeshField1 - nNum);
 		}
 
@@ -1161,6 +1169,9 @@ void CMeshField::ResetData(void)
 //========================================================================
 HRESULT CMeshField::WriteData(const char* pFilename)
 {
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
+
 	// バイナリ形式でファイルオープン
 	std::ofstream file(pFilename, std::ios_base::out | std::ios_base::binary);
 
@@ -1173,8 +1184,8 @@ HRESULT CMeshField::WriteData(const char* pFilename)
 		SetNor();
 
 		// 書き出す
-		file.write((const char*)&m_block, sizeof(m_block));
-		file.write((const char*)&m_size, sizeof(m_size));
+		file.write((const char*)&block, sizeof(block));
+		file.write((const char*)&size, sizeof(size));
 		file.write((const char*)&m_nNumVtx, sizeof(m_nNumVtx));
 		file.write((const char*)&m_nNumIdx, sizeof(m_nNumIdx));
 
@@ -1238,10 +1249,10 @@ HRESULT CMeshField::ReadData(const char* pFilename)
 		file.read((char*)&nNumIdx, sizeof(nNumIdx));
 
 		// 現在の設定との整合性をチェック
-		if (m_block == block && m_size == size && m_nNumVtx == nNumVtx && m_nNumIdx == nNumIdx)
+		if (block == block && size == size && m_nNumVtx == nNumVtx && m_nNumIdx == nNumIdx)
 		{// 全て同じなら代入
-			m_block = block;
-			m_size = size;
+			block = block;
+			size = size;
 			m_nNumVtx = nNumVtx;
 			m_nNumIdx = nNumIdx;
 		}
@@ -1254,8 +1265,8 @@ HRESULT CMeshField::ReadData(const char* pFilename)
 			CreateIdxBuff(nNumIdx);
 
 			// 代入
-			m_block = block;
-			m_size = size;
+			block = block;
+			size = size;
 			m_nNumVtx = nNumVtx;
 			m_nNumIdx = nNumIdx;
 		}

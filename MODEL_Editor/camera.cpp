@@ -496,9 +496,6 @@ void CCamera::Update(void)
 	// オフセットを震わせる
 	m_posVOff.x *= -1.0f;
 	m_posVOff.z *= -1.0f;
-
-	pDebugProc->Print("\n< CAMERA >\n");
-	pDebugProc->Print("プレイヤー追従 [ F5 / 左スティック押し込み ] : ( %s )\n", (m_type == TYPE_PLAYER) ? "ON" : "OFF");
 }
 
 //=============================================================================

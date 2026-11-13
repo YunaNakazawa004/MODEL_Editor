@@ -71,8 +71,6 @@ CMeshWall* CMeshWall::Create(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot, const
 CMeshWall::CMeshWall(const int nPriority) :CMesh(nPriority)
 {
 	// メッシュウォールクラスの値をクリア
-	m_block = DEFAULT_VECTOR2;
-	m_size = DEFAULT_VECTOR2;
 	m_col = COLOR_WHITE;
 	m_nNumVtx = 0;
 	m_nNumIdx = 0;
@@ -102,10 +100,10 @@ HRESULT CMeshWall::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	SetPosition(pos);
 	SetRotation(rot);
 	SetScale(D3DXVECTOR3(1.0f, 1.0f, 1.0f));
-	m_block = block;
-	m_size = size;
-	m_nNumVtx = ((int)m_block.x + 1) * ((int)m_block.y + 1);
-	m_nNumIdx = (((int)m_block.x) * ((int)m_block.y) * 2) + (((int)m_block.y - 1) * 4) + 2;
+	SetBlock(block);
+	SetSize(size);
+	m_nNumVtx = ((int)block.x + 1) * ((int)block.y + 1);
+	m_nNumIdx = (((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4) + 2;
 
 	// 頂点バッファを生成
 	if (FAILED(CreateVtxBuff(m_nNumVtx)))
@@ -117,13 +115,13 @@ HRESULT CMeshWall::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
-	for (int nCntMeshWall1 = 0; nCntMeshWall1 < (int)m_block.y + 1; nCntMeshWall1++)
+	for (int nCntMeshWall1 = 0; nCntMeshWall1 < (int)block.y + 1; nCntMeshWall1++)
 	{
-		for (int nCntMeshWall2 = 0; nCntMeshWall2 < (int)m_block.x + 1; nCntMeshWall2++)
+		for (int nCntMeshWall2 = 0; nCntMeshWall2 < (int)block.x + 1; nCntMeshWall2++)
 		{
 			// 頂点座標の設定
-			pVtx[0].pos.x = ((float)nCntMeshWall2 * m_size.x * 2.0f) - ((m_block.x * m_size.x * 2.0f) * 0.5f);
-			pVtx[0].pos.y = -((float)nCntMeshWall1 * m_size.y * 2.0f) + (m_block.y * m_size.y * 2.0f);
+			pVtx[0].pos.x = ((float)nCntMeshWall2 * size.x * 2.0f) - ((block.x * size.x * 2.0f) * 0.5f);
+			pVtx[0].pos.y = -((float)nCntMeshWall1 * size.y * 2.0f) + (block.y * size.y * 2.0f);
 			pVtx[0].pos.z = 0.0f;
 
 			// rhwの設定
@@ -159,16 +157,16 @@ HRESULT CMeshWall::Init(const D3DXVECTOR3 pos, const D3DXVECTOR3 rot,
 	// 頂点番号データの設定
 	for (int nCntMeshWall1 = 0; nCntMeshWall1 < m_nNumIdx / 2; nCntMeshWall1++)
 	{
-		if (nCntMeshWall1 % ((int)m_block.x + 2) == ((int)m_block.x + 1))
+		if (nCntMeshWall1 % ((int)block.x + 2) == ((int)block.x + 1))
 		{// 縮退ポリゴンのところ
 			nNum++;
 
 			pIdx[0] = nCntMeshWall1 - nNum;
-			pIdx[1] = nCntMeshWall1 - nNum + ((int)m_block.x + 2);
+			pIdx[1] = nCntMeshWall1 - nNum + ((int)block.x + 2);
 		}
 		else
 		{// 縮退以外のポリゴン
-			pIdx[0] = (nCntMeshWall1 - nNum) + ((int)m_block.x + 1);
+			pIdx[0] = (nCntMeshWall1 - nNum) + ((int)block.x + 1);
 			pIdx[1] = (nCntMeshWall1 - nNum);
 		}
 
@@ -385,17 +383,18 @@ void CMeshWall::SetNor(void)
 {
 	VERTEX_3D* pVtx;					// 頂点情報へのポインタ
 	D3DXVECTOR3 nor, nor1, nor2, nor3, nor4, nor5, nor6, vec1, vec2;
+	D3DXVECTOR2 block = GetBlock();
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 法線の設定
-	for (int nCntMeshWall1 = 0; nCntMeshWall1 < (int)m_block.y + 1; nCntMeshWall1++)
+	for (int nCntMeshWall1 = 0; nCntMeshWall1 < (int)block.y + 1; nCntMeshWall1++)
 	{
-		for (int nCntMeshWall2 = 0; nCntMeshWall2 < (int)m_block.x + 1; nCntMeshWall2++)
+		for (int nCntMeshWall2 = 0; nCntMeshWall2 < (int)block.x + 1; nCntMeshWall2++)
 		{
 			// 頂点番号
-			int nVtx = nCntMeshWall2 + (nCntMeshWall1 * ((int)m_block.x + 1));
+			int nVtx = nCntMeshWall2 + (nCntMeshWall1 * ((int)block.x + 1));
 
 			D3DXVECTOR3 vec1, vec2;
 			D3DXVECTOR3 nor, norA, norB, norC, norD, norE, norF;
@@ -403,9 +402,9 @@ void CMeshWall::SetNor(void)
 			nor = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
 
 			// 法線の設定
-			if ((nCntMeshWall1 == 0 && nCntMeshWall2 == (int)m_block.x))
+			if ((nCntMeshWall1 == 0 && nCntMeshWall2 == (int)block.x))
 			{// 法線ひとつ(右上)(▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -414,9 +413,9 @@ void CMeshWall::SetNor(void)
 				// 正規化
 				D3DXVec3Normalize(&nor, &nor);
 			}
-			else if (nCntMeshWall1 == (int)m_block.y && nCntMeshWall2 == 0)
+			else if (nCntMeshWall1 == (int)block.y && nCntMeshWall2 == 0)
 			{// 法線ひとつ(左下)(△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -428,9 +427,9 @@ void CMeshWall::SetNor(void)
 			else if (nCntMeshWall1 == 0 && nCntMeshWall2 == 0)
 			{// 法線ふたつ(左上)
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -442,7 +441,7 @@ void CMeshWall::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -453,12 +452,12 @@ void CMeshWall::SetNor(void)
 
 				nor = (norA + norB) / 2.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshWall1 == (int)m_block.y && nCntMeshWall2 == (int)m_block.x)
+			else if (nCntMeshWall1 == (int)block.y && nCntMeshWall2 == (int)block.x)
 			{// 法線ふたつ(右下)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -468,9 +467,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -484,7 +483,7 @@ void CMeshWall::SetNor(void)
 			else if (nCntMeshWall1 == 0)
 			{// 法線みっつ(上の辺)
 				// (▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -494,9 +493,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -508,7 +507,7 @@ void CMeshWall::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -519,10 +518,10 @@ void CMeshWall::SetNor(void)
 
 				nor = (norA + norB + norC) / 3.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshWall1 == (int)m_block.y)
+			else if (nCntMeshWall1 == (int)block.y)
 			{// 法線みっつ(下の辺)
 				// (△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -534,7 +533,7 @@ void CMeshWall::SetNor(void)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -544,9 +543,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norB, &norB);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -560,7 +559,7 @@ void CMeshWall::SetNor(void)
 			else if (nCntMeshWall2 == 0)
 			{// 法線みっつ(左の辺)
 				// (△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -570,9 +569,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (△)
-				int nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				int nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -584,7 +583,7 @@ void CMeshWall::SetNor(void)
 				// (▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -595,10 +594,10 @@ void CMeshWall::SetNor(void)
 
 				nor = (norA + norB + norC) / 3.0f;		// 最終的な法線方向
 			}
-			else if (nCntMeshWall2 == (int)m_block.x)
+			else if (nCntMeshWall2 == (int)block.x)
 			{// 法線みっつ(右の辺)
 				// (▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -610,7 +609,7 @@ void CMeshWall::SetNor(void)
 				// (△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -620,9 +619,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norB, &norB);
 
 				// (▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -636,7 +635,7 @@ void CMeshWall::SetNor(void)
 			else
 			{// 中心部
 				// (右上△)
-				vec1 = pVtx[nVtx - ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx - ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx + 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -646,7 +645,7 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norA, &norA);
 
 				// (左下▽)
-				vec1 = pVtx[nVtx + ((int)m_block.x + 1)].pos - pVtx[nVtx].pos;
+				vec1 = pVtx[nVtx + ((int)block.x + 1)].pos - pVtx[nVtx].pos;
 				vec2 = pVtx[nVtx - 1].pos - pVtx[nVtx].pos;
 
 				// 外積
@@ -658,7 +657,7 @@ void CMeshWall::SetNor(void)
 				// (左上△)
 				int nMainVtx = nVtx - 1;						// 真左の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -668,9 +667,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norC, &norC);
 
 				// (左上▽)
-				nMainVtx = nVtx - ((int)m_block.x + 1);			// 真上の頂点に主頂点を設定
+				nMainVtx = nVtx - ((int)block.x + 1);			// 真上の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -680,9 +679,9 @@ void CMeshWall::SetNor(void)
 				D3DXVec3Normalize(&norD, &norD);
 
 				// (右下△)
-				nMainVtx = nVtx + ((int)m_block.x + 1);		// 真下の頂点に主頂点を設定
+				nMainVtx = nVtx + ((int)block.x + 1);		// 真下の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx - ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx - ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx + 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -694,7 +693,7 @@ void CMeshWall::SetNor(void)
 				// (右下▽)
 				nMainVtx = nVtx + 1;							// 真右の頂点に主頂点を設定
 
-				vec1 = pVtx[nMainVtx + ((int)m_block.x + 1)].pos - pVtx[nMainVtx].pos;
+				vec1 = pVtx[nMainVtx + ((int)block.x + 1)].pos - pVtx[nMainVtx].pos;
 				vec2 = pVtx[nMainVtx - 1].pos - pVtx[nMainVtx].pos;
 
 				// 外積
@@ -725,17 +724,19 @@ D3DXVECTOR2 CMeshWall::GetPolygonIdx(const D3DXVECTOR3 pos)
 	D3DXVECTOR2 posP;			// 与えられた位置のオフセット位置
 	D3DXVECTOR3 posM = GetPosition();
 	D3DXVECTOR3 rot = GetRotation();
+	D3DXVECTOR2 block = GetBlock();
+	D3DXVECTOR2 size = GetSize();
 
 	// 壁の位置角度分自分の位置をずらす
 	posRotDefP.x = cosf(-rot.y) * (pos.x - posM.x) + sinf(-rot.y) * (pos.z - posM.z);
-	posP.x = posRotDefP.x + (m_size.x * m_block.x);		// 角度を直した位置をずらす
-	posP.y = pos.y - (m_size.y * m_block.y * 2.0f);		// 壁は原点が底辺にあるので高さを２倍減らす
+	posP.x = posRotDefP.x + (size.x * block.x);		// 角度を直した位置をずらす
+	posP.y = pos.y - (size.y * block.y * 2.0f);		// 壁は原点が底辺にあるので高さを２倍減らす
 
 	// ポリゴン番号を計算
-	polygonIdx.x = (posP.x / (m_size.x * 2.0f));
-	polygonIdx.y = (posP.y / -(m_size.y * 2.0f));
+	polygonIdx.x = (posP.x / (size.x * 2.0f));
+	polygonIdx.y = (posP.y / -(size.y * 2.0f));
 
-	if (polygonIdx.x >= 0 && polygonIdx.x < m_block.x && polygonIdx.y >= 0 && polygonIdx.y < m_block.y)
+	if (polygonIdx.x >= 0 && polygonIdx.x < block.x && polygonIdx.y >= 0 && polygonIdx.y < block.y)
 	{// 範囲内の数値
 		return polygonIdx;
 	}

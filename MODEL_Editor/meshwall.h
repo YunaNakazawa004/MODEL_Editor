@@ -38,8 +38,6 @@ public:
 	D3DXCOLOR GetColor(const int nCntVtx);
 	void SetTexUV(const int nCntVtx, const float ftexU, const float ftexV);
 	void SetTexScroll(const int nCntVtx, const float fScrollU, const float fScrollV);
-	D3DXVECTOR2 GetSize(void) { return m_size; }
-	D3DXVECTOR2 GetBlock(void) { return m_block; }
 	int GetNumVtx(void) { return m_nNumVtx; }
 	int GetNumIdx(void) { return m_nNumIdx; }
 	void SetNor(void);
@@ -50,8 +48,6 @@ public:
 
 private:
 	int m_nIdxTexture;								// テクスチャのインデックス
-	D3DXVECTOR2 m_block;		// 分割数
-	D3DXVECTOR2 m_size;			// サイズ
 	D3DXCOLOR m_col;			// 色
 	int m_nNumVtx;				// 頂点の総数
 	int m_nNumIdx;				// インデックスの総数

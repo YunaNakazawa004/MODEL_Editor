@@ -45,7 +45,7 @@ public:
 	void Update(void);
 
 	void ResetData(void);
-	HRESULT WriteData(const char* pFilename);
+	HRESULT WriteData(const char* pFilenameTxt, const char* pFilenameBin);
 	HRESULT ReadData(const char* pFilename);
 
 	CMesh* GetMesh(void) { return m_apMesh; }

@@ -27,6 +27,7 @@
 #include "meshdome.h"
 #include "console.h"
 #include "effect_batching.h"
+#include "line.h"
 
 //************************************************************************
 // 静的メンバ変数宣言
@@ -264,10 +265,6 @@ HRESULT CManager::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 		}
 	}
 
-	// 地面
-	CObject3D* pObject3D = CObject3D::Create(DEFAULT_VECTOR3, 10000.0f, 0.0f, 10000.0f, CObject::TYPE_FIELD, "data\\TEXTURE\\field002.jpg", 3);
-	pObject3D->SetTexUV(100, 100);
-
 	// 空
 	CMeshDome* pMeshDome = CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 50000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
 	pMeshDome->SetCalc(false);
@@ -442,6 +439,11 @@ void CManager::Update(void)
 		m_pDebugProc->Print("リセット [ BackSpace / BACK ]\n");
 	}
 
+	// 軸
+	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(50000.0f, 0.0f, 0.0f), COLOR_RED, COLOR_RED);
+	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(0.0f, 50000.0f, 0.0f), COLOR_GREEN, COLOR_GREEN);
+	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(0.0f, 0.0f, 50000.0f), COLOR_SKYBLUE, COLOR_SKYBLUE);
+
 	if (m_bPause == false)
 	{// ポーズしていないときだけ
 		if (m_pRenderer != nullptr)
@@ -493,16 +495,6 @@ void CManager::Update(void)
 			m_bPause = m_bPause ? false : true;
 
 			m_pSound->PlaySound(CSound::SE_PAUSE);
-		}
-
-		// マルチターゲットレンダリング
-		if (m_pInputKeyboard->GetPress(DIK_NUMPAD3) == true)
-		{
-			CManager::GetMTRenderer()->SetMultiRendering(true);
-		}
-		else if (m_pInputKeyboard->GetRelease(DIK_NUMPAD3) == true)
-		{
-			CManager::GetMTRenderer()->SetMultiRendering(false);
 		}
 
 		if (m_pInputKeyboard->GetTrigger(DIK_F8) == true)
@@ -558,11 +550,9 @@ void CManager::Reset(void)
 	// ゲームオブジェクトの破棄
 	CObject::ReleaseAll();
 
-	// 地面
-	CObject3D::Create(DEFAULT_VECTOR3, 1000.0f, 0.0f, 1000.0f, CObject::TYPE_FIELD, "data\\TEXTURE\\field000.jpg", 3);
-
 	// 空
-	CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 5000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
+	CMeshDome* pMeshDome = CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 50000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
+	pMeshDome->SetCalc(false);
 
 	// コンソールの生成
 	CConsole::Create(DEFAULT_VECTOR3);

@@ -172,30 +172,56 @@ void CMesh::Update(void)
 		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
 	}
 	
+	// 移動操作
+	if (pInputKeyboard->GetRepeat(DIK_NUMPAD6) == true)
+	{// X軸移動
+		m_pos.x += 5.0f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD4) == true)
+	{// X軸移動
+		m_pos.x -= 5.0f;
+	}
+	if (pInputKeyboard->GetRepeat(DIK_NUMPAD8) == true)
+	{// Y軸移動
+		m_pos.y += 5.0f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD5) == true)
+	{// Y軸移動
+		m_pos.y -= 5.0f;
+	}
+	if (pInputKeyboard->GetRepeat(DIK_NUMPAD3) == true)
+	{// Z軸移動
+		m_pos.z += 5.0f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD1) == true)
+	{// Z軸移動
+		m_pos.z -= 5.0f;
+	}
+	
 	// 向き操作
 	if (pInputKeyboard->GetRepeat(DIK_W) == true)
 	{// X軸回転
-		m_rot.x += 0.1f;
+		m_rot.x += D3DX_PI * 0.1f;
 	}
 	else if (pInputKeyboard->GetRepeat(DIK_S) == true)
 	{// X軸回転
-		m_rot.x -= 0.1f;
+		m_rot.x -= D3DX_PI * 0.1f;
 	}
 	if (pInputKeyboard->GetRepeat(DIK_A) == true)
 	{// Y軸回転
-		m_rot.y += 0.1f;
+		m_rot.y += D3DX_PI * 0.1f;
 	}
 	else if (pInputKeyboard->GetRepeat(DIK_D) == true)
 	{// Y軸回転
-		m_rot.y -= 0.1f;
+		m_rot.y -= D3DX_PI * 0.1f;
 	}
 	if (pInputKeyboard->GetRepeat(DIK_Z) == true)
 	{// Z軸回転
-		m_rot.z += 0.1f;
+		m_rot.z += D3DX_PI * 0.1f;
 	}
 	else if (pInputKeyboard->GetRepeat(DIK_C) == true)
 	{// Z軸回転
-		m_rot.z -= 0.1f;
+		m_rot.z -= D3DX_PI * 0.1f;
 	}
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
@@ -421,12 +447,12 @@ D3DXVECTOR3 CMesh::GetVtxPos(void)
 //========================================================================
 // メッシュの書き込み処理
 //========================================================================
-HRESULT CMesh::WriteData(const char* pFilename)
+HRESULT CMesh::WriteTxtData(const char* pFilename)
 {
 	// ファイルオープン
-	std::ofstream file(pFilename);
+	std::ofstream filetxt(pFilename);
 
-	if (file.is_open() == true)
+	if (filetxt.is_open() == true)
 	{// ファイルが開けた
 		VERTEX_3D* pVtx;
 		DWORD* pIdx;
@@ -437,15 +463,25 @@ HRESULT CMesh::WriteData(const char* pFilename)
 
 		for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
 		{
-			str.clear();
-			str = std::to_string(pVtx[nCntVtx].pos.x);
-			str += " ";
-			str += std::to_string(pVtx[nCntVtx].pos.y);
-			str += " ";
-			str += std::to_string(pVtx[nCntVtx].pos.z);
-			str += "\n";
+			D3DXVECTOR3 pos;
+			D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
 
-			file.write(str.c_str(), str.size());
+			str.clear();
+
+			str = "\tVERTEX\n";
+			str += "\t\tPOS = ";
+			str += std::to_string(pos.x);
+			str += " ";
+			str += std::to_string(pos.y);
+			str += " ";
+			str += std::to_string(pos.z);
+			str += "\n";
+			str += "\t\tBONE_REF = 0 1\n";
+			str += "\t\tWEIGHT_VALUE = 0.0 1.0\n";
+			str += "\t\tTEX = 0.0 0.0\n";
+			str += "\tEND_VERTEX\n\n";
+
+			filetxt.write(str.c_str(), str.size());
 		}
 
 		// 頂点バッファをアンロックする
@@ -460,14 +496,14 @@ HRESULT CMesh::WriteData(const char* pFilename)
 			str = std::to_string(pIdx[nCntIdx]);
 			str += "\n";
 
-			file.write(str.c_str(), str.size());
+			filetxt.write(str.c_str(), str.size());
 		}
 
 		// インデックスバッファをアンロックする
 		GetIdxBuff()->Unlock();
 
 		// ファイルを閉じる
-		file.close();
+		filetxt.close();
 	}
 	else
 	{// ファイルが開けなかった
@@ -480,38 +516,51 @@ HRESULT CMesh::WriteData(const char* pFilename)
 }
 
 //========================================================================
-// メッシュの読み込み処理
+// メッシュの書き込み処理
 //========================================================================
-HRESULT CMesh::ReadData(const char* pFilename)
+HRESULT CMesh::WriteBinData(const char* pFilename)
 {
 	// ファイルオープン
-	std::ifstream file(pFilename);
+	std::ofstream filebin(pFilename, std::ios_base::out | std::ios_base::binary);
 
-	if (file.is_open() == true)
+	if (filebin.is_open() == true)
 	{// ファイルが開けた
-		//// 現在のオブジェクトを破棄
-		//Uninit();
+		VERTEX_3D* pVtx;
+		DWORD* pIdx;
 
-		//// カウントリセット
-		//int type = 0;
-		//m_nNumObject = 0;
+		// 書き出す
+		filebin.write((const char*)&m_type, sizeof(m_type));
+		filebin.write((const char*)&m_pos, sizeof(m_pos));
+		filebin.write((const char*)&m_rot, sizeof(m_rot));
+		filebin.write((const char*)&m_block, sizeof(m_block));
+		filebin.write((const char*)&m_size, sizeof(m_size));
+		filebin.write((const char*)&m_nNumVtxAll, sizeof(m_nNumVtxAll));
+		filebin.write((const char*)&m_nNumIdxAll, sizeof(m_nNumIdxAll));
 
-		//// ファイルから読み込む
-		//file.read((char*)&type, sizeof(type));
+		// 頂点バッファをロックし、頂点情報へのポインタを取得
+		GetVtxBuff()->Lock(0, 0, (void**)&pVtx, 0);
 
-		//// オブジェクトの生成
-		//Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, DEFAULT_VECTOR2, DEFAULT_VECTOR2, type);
+		for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+		{
+			filebin.write((const char*)&pVtx[nCntVtx], sizeof(*pVtx));
+		}
 
-		//HRESULT hr = m_Mesh.apMesh->ReadData();
+		// 頂点バッファをアンロックする
+		GetVtxBuff()->Unlock();
 
-		//// 総数を確認
-		//if (hr != S_OK)
-		//{// もし違ったら
-		//	OutputDebugStringA("! ! ! メッシュの読み込みに失敗しました ! ! !\n");
-		//}
+		// インデックスバッファをロックし、頂点番号データへのポインタを取得
+		GetIdxBuff()->Lock(0, 0, (void**)&pIdx, 0);
+
+		for (int nCntIdx = 0; nCntIdx < m_nNumIdxAll; nCntIdx++)
+		{
+			filebin.write((const char*)&pIdx[nCntIdx], sizeof(*pIdx));
+		}
+
+		// インデックスバッファをアンロックする
+		GetIdxBuff()->Unlock();
 
 		// ファイルを閉じる
-		file.close();
+		filebin.close();
 	}
 	else
 	{// ファイルが開けなかった

@@ -38,7 +38,6 @@ public:
 	void SetTexUV(const int nCntVtx, const float ftexU, const float ftexV);
 	void SetTexScroll(const int nCntVtx, const float fScrollU, const float fScrollV);
 	float GetRadius(void) { return m_fRadius; }
-	D3DXVECTOR2 GetBlock(void) { return m_block; }
 	int GetNumVtx(void) { return m_nNumVtx; }
 	int GetNumIdx(void) { return m_nNumIdx; }
 	void SetDisp(const bool bDisp) { m_bDisp = bDisp; }
@@ -47,7 +46,6 @@ public:
 private:
 	int m_nIdxTexture;			// テクスチャのインデックス
 	float m_fRadius;			// 半径
-	D3DXVECTOR2 m_block;		// 分割数
 	D3DXCOLOR m_col;			// 色
 	int m_nNumVtx;				// 頂点の総数
 	int m_nNumIdx;				// インデックスの総数

@@ -46,6 +46,10 @@ public:
 	D3DXVECTOR3 GetRotation(void) { return m_rot; }
 	void SetScale(const D3DXVECTOR3 scale);
 	D3DXVECTOR3 GetScale(void) { return m_scale; }
+	void SetSize(const D3DXVECTOR2 size) { m_size = size; }
+	D3DXVECTOR2 GetSize(void) { return m_size; }
+	void SetBlock(const D3DXVECTOR2 block) { m_block = block; }
+	D3DXVECTOR2 GetBlock(void) { return m_block; }
 	void SetMatrix(const D3DXMATRIX mtxWorld) { m_mtxWorld = mtxWorld; }
 	void SetCalc(const bool bCalc) { m_bCalc = bCalc; }
 
@@ -55,11 +59,13 @@ public:
 	LPDIRECT3DVERTEXBUFFER9 GetVtxBuff(void) { return m_pVtxBuff; }
 	LPDIRECT3DINDEXBUFFER9 GetIdxBuff(void) { return m_pIdxBuff; }
 
+	int GetVtxNum(void) { return m_nNumVtxAll; }
+	int GetIdxNum(void) { return m_nNumIdxAll; }
 	int GetVtxIdx(void) { return m_nVtxIdx; }
 	D3DXVECTOR3 GetVtxPos(void);
 
-	HRESULT WriteData(const char* pFilename);
-	HRESULT ReadData(const char* pFilename);
+	HRESULT WriteTxtData(const char* pFilename);
+	HRESULT WriteBinData(const char* pFilename);
 
 private:
 	LPDIRECT3DVERTEXBUFFER9 m_pVtxBuff;				// 頂点バッファへのポインタ
@@ -68,6 +74,8 @@ private:
 	D3DXVECTOR3 m_pos;			// 位置
 	D3DXVECTOR3 m_rot;			// 向き
 	D3DXVECTOR3 m_scale;		// スケール
+	D3DXVECTOR2 m_block;		// 分割数
+	D3DXVECTOR2 m_size;			// サイズ
 	int m_nNumVtxAll;			// 頂点の総数
 	int m_nNumIdxAll;			// インデックスの総数
 	int m_nVtxIdx;				// 選択されている頂点
