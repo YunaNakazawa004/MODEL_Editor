@@ -75,7 +75,6 @@ CConsole* CConsole::Create(const D3DXVECTOR3 pos)
 CConsole::CConsole(const int nPriority) :CObject(nPriority)
 {
 	// コンソールクラスの値をクリア
-	pObject = nullptr;
 	m_type = 0;
 	m_mode = 0;
 	m_block = DEFAULT_VECTOR2;
