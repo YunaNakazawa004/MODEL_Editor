@@ -169,16 +169,6 @@ void CMesh::Update(void)
 		bVtxEffect = (bVtxEffect) ? false : true;
 	}
 
-	// 頂点操作
-	if (pInputKeyboard->GetRepeat(DIK_E) == true)
-	{// 次の頂点
-		m_nVtxIdx = (m_nVtxIdx + 1) % m_nNumVtxAll;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_Q) == true)
-	{// 前の頂点
-		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
-	}
-	
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
 
@@ -195,7 +185,70 @@ void CMesh::Update(void)
 
 			pEffectBatching->Set(pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
 		}
+	}
 
+	// 頂点バッファをアンロックする
+	m_pVtxBuff->Unlock();
+}
+
+//========================================================================
+// メッシュの描画処理
+//========================================================================
+void CMesh::Draw(void)
+{
+	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
+	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
+	D3DXMATRIX mtxRot, mtxScale, mtxTrans;		// 計算用マトリックス
+
+	// ワールドマトリックスの初期化
+	D3DXMatrixIdentity(&m_mtxWorld);
+
+	// 向きを反映
+	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
+
+	// スケールを反映
+	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
+
+	// 位置を反映
+	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
+	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
+
+	// ワールドマトリックスの設定
+	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+}
+
+//========================================================================
+// コントロール
+//========================================================================
+void CMesh::Controll(void)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
+
+	if (m_pVtxBuff == nullptr)
+	{// NULLチェック
+		return;
+	}
+
+	// 頂点操作
+	if (pInputKeyboard->GetRepeat(DIK_E) == true)
+	{// 次の頂点
+		m_nVtxIdx = (m_nVtxIdx + 1) % m_nNumVtxAll;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_Q) == true)
+	{// 前の頂点
+		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
+	}
+
+	// 頂点バッファをロックし、頂点情報へのポインタを取得
+	m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
+
+	// 頂点情報の設定
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
 		if (m_nVtxIdx != nCntVtx)
 		{// 操作されている番号じゃなければ飛ばす
 			continue;
@@ -234,34 +287,6 @@ void CMesh::Update(void)
 
 	// 頂点バッファをアンロックする
 	m_pVtxBuff->Unlock();
-}
-
-//========================================================================
-// メッシュの描画処理
-//========================================================================
-void CMesh::Draw(void)
-{
-	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
-	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
-	D3DXMATRIX mtxRot, mtxScale, mtxTrans;		// 計算用マトリックス
-
-	// ワールドマトリックスの初期化
-	D3DXMatrixIdentity(&m_mtxWorld);
-
-	// 向きを反映
-	D3DXMatrixRotationYawPitchRoll(&mtxRot, m_rot.y, m_rot.x, m_rot.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxRot);
-
-	// スケールを反映
-	D3DXMatrixScaling(&mtxScale, m_scale.x, m_scale.y, m_scale.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxScale);
-
-	// 位置を反映
-	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
-	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
-
-	// ワールドマトリックスの設定
-	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
 }
 
 //========================================================================

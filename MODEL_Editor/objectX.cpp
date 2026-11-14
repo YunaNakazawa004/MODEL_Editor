@@ -21,6 +21,9 @@
 #define MOVEMENT				(D3DXVECTOR3(0.6f, 0.6f, 0.6f))			// 移動量
 #define ROT						(D3DXVECTOR3(0.05f, 0.05f, 0.05f))		// 向き移動量
 
+#define ENABLE_MOVE				// 移動するかどうか
+#undef ENABLE_MOVE
+
 //========================================================================
 // オブジェクトXクラスの生成処理
 //========================================================================
@@ -211,6 +214,7 @@ void CObjectX::Uninit(void)
 //========================================================================
 void CObjectX::Update(void)
 {
+#ifdef ENABLE_MOVE
 	// ローカル変数
 	CCamera* pCamera = CManager::GetCamera();							// カメラの取得
 	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
@@ -295,6 +299,7 @@ void CObjectX::Update(void)
 	// 位置/向きを適用
 	SetPosition(pos);
 	SetRotation(rot);
+#endif
 }
 
 //========================================================================

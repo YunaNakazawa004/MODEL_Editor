@@ -40,6 +40,8 @@ public:
 	virtual void Update(void);
 	virtual void Draw(void);
 
+	void Controll(void);
+
 	void SetPosition(const D3DXVECTOR3 pos);
 	D3DXVECTOR3 GetPosition(void) { return m_pos; }
 	void SetRotation(const D3DXVECTOR3 rot);
