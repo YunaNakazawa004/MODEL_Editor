@@ -269,6 +269,9 @@ void CMeshDome::Draw(void)
 	// カリングをOFFに設定
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
+	// 頂点法線正規化をオン
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+
 	// 頂点バッファをデータストリームに設定
 	pDevice->SetStreamSource(0, GetVtxBuff(), 0, sizeof(VERTEX_3D));
 
@@ -294,6 +297,9 @@ void CMeshDome::Draw(void)
 
 	// ライティングオン
 	pDevice->SetRenderState(D3DRS_LIGHTING, TRUE);
+
+	// 頂点法線正規化をオフ
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, FALSE);
 
 	// カリングを戻す
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);

@@ -156,10 +156,17 @@ void CMesh::Update(void)
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	CEffectBatching* pEffectBatching = CManager::GetEffectBatching();	// バッチ描画エフェクトの取得
 	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
+	static bool bVtxEffect = true;
 
 	if (m_pVtxBuff == nullptr)
 	{// NULLチェック
 		return;
+	}
+
+	// エフェクトの切り替え
+	if (pInputKeyboard->GetTrigger(DIK_F2) == true)
+	{// 切り替える
+		bVtxEffect = (bVtxEffect) ? false : true;
 	}
 
 	// 頂点操作
@@ -172,71 +179,22 @@ void CMesh::Update(void)
 		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
 	}
 	
-	// 移動操作
-	if (pInputKeyboard->GetRepeat(DIK_NUMPAD6) == true)
-	{// X軸移動
-		m_pos.x += 5.0f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD4) == true)
-	{// X軸移動
-		m_pos.x -= 5.0f;
-	}
-	if (pInputKeyboard->GetRepeat(DIK_NUMPAD8) == true)
-	{// Y軸移動
-		m_pos.y += 5.0f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD5) == true)
-	{// Y軸移動
-		m_pos.y -= 5.0f;
-	}
-	if (pInputKeyboard->GetRepeat(DIK_NUMPAD3) == true)
-	{// Z軸移動
-		m_pos.z += 5.0f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_NUMPAD1) == true)
-	{// Z軸移動
-		m_pos.z -= 5.0f;
-	}
-	
-	// 向き操作
-	if (pInputKeyboard->GetRepeat(DIK_W) == true)
-	{// X軸回転
-		m_rot.x += D3DX_PI * 0.1f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_S) == true)
-	{// X軸回転
-		m_rot.x -= D3DX_PI * 0.1f;
-	}
-	if (pInputKeyboard->GetRepeat(DIK_A) == true)
-	{// Y軸回転
-		m_rot.y += D3DX_PI * 0.1f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_D) == true)
-	{// Y軸回転
-		m_rot.y -= D3DX_PI * 0.1f;
-	}
-	if (pInputKeyboard->GetRepeat(DIK_Z) == true)
-	{// Z軸回転
-		m_rot.z += D3DX_PI * 0.1f;
-	}
-	else if (pInputKeyboard->GetRepeat(DIK_C) == true)
-	{// Z軸回転
-		m_rot.z -= D3DX_PI * 0.1f;
-	}
-
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
 	m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
 
 	// 頂点情報の設定
 	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
 	{
-		D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_RED : COLOR_GREEN;
-		float fSize = (m_nVtxIdx == nCntVtx) ? 10.0f : 6.0f;
+		if (bVtxEffect == true)
+		{// 頂点エフェクトをつける場合
+			D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_RED : COLOR_GREEN;
+			float fSize = ((m_nVtxIdx == nCntVtx) ? 10.0f : 6.0f) * m_scale.x;
 
-		D3DXVECTOR3 pos;
-		D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
+			D3DXVECTOR3 pos;
+			D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
 
-		pEffectBatching->Set(pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
+			pEffectBatching->Set(pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
+		}
 
 		if (m_nVtxIdx != nCntVtx)
 		{// 操作されている番号じゃなければ飛ばす
@@ -478,7 +436,11 @@ HRESULT CMesh::WriteTxtData(const char* pFilename)
 			str += "\n";
 			str += "\t\tBONE_REF = 0 1\n";
 			str += "\t\tWEIGHT_VALUE = 0.0 1.0\n";
-			str += "\t\tTEX = 0.0 0.0\n";
+			str += "\t\tTEX = ";
+			str += std::to_string(pVtx[nCntVtx].tex.x);
+			str += " ";
+			str += std::to_string(pVtx[nCntVtx].tex.y);
+			str += "\n";
 			str += "\tEND_VERTEX\n\n";
 
 			filetxt.write(str.c_str(), str.size());

@@ -212,6 +212,9 @@ void CMeshField::Draw(void)
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
 	D3DXVECTOR2 block = GetBlock();
 
+	// 頂点法線正規化をオン
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+
 	// マトリックスを計算
 	CMesh::Draw();
 
@@ -230,6 +233,9 @@ void CMeshField::Draw(void)
 	// ポリゴンの描画
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, ((int)block.x + 1) * ((int)block.y + 1), 0,
 		(((int)block.x) * ((int)block.y) * 2) + (((int)block.y - 1) * 4));
+
+	// 頂点法線正規化をオフ
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, FALSE);
 }
 
 //========================================================================

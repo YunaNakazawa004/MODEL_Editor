@@ -77,6 +77,7 @@ CConsole::CConsole(const int nPriority) :CObject(nPriority)
 	// コンソールクラスの値をクリア
 	pObject = nullptr;
 	m_type = 0;
+	m_mode = 0;
 	m_block = DEFAULT_VECTOR2;
 	m_size = DEFAULT_VECTOR2;
 }
@@ -119,7 +120,95 @@ void CConsole::Update(void)
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	CMeshManager* pMeshManager = CManager::GetMeshManager();			// メッシュマネージャーの取得
 	CMesh* pMesh = pMeshManager->GetMesh();			// メッシュの取得
-	D3DXVECTOR3 pos = CConsole::GetPosition();
+
+	// オブジェクト切り替え
+	if (pInputKeyboard->GetTrigger(DIK_1) == true)
+	{// モード切替
+		m_type = (m_type + (MESH_MAX - 1)) % MESH_MAX;
+	}
+	else if (pInputKeyboard->GetTrigger(DIK_2) == true)
+	{// モード切替
+		m_type = (m_type + 1) % MESH_MAX;
+	}
+
+	if (pInputKeyboard->GetTrigger(DIK_RETURN) == true)
+	{// エンター
+		pMeshManager->Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, m_block, m_size, m_type);
+	}
+
+	// 配置に関するコメント
+	pDebugProc->Print("\n*** 配置 ***\n");
+	pDebugProc->Print("オブジェクト配置 [ ENTER ]\n");
+	pDebugProc->Print("オブジェクトの種類 [ 1 ←→ 2 ] : ( %s )\n",
+		(m_type == MESHWALL) ? "メッシュウォール" :
+		(m_type == MESHFIELD) ? "メッシュフィールド" :
+		(m_type == MESHRING) ? "メッシュリング" :
+		(m_type == MESHCYLINDER) ? "メッシュシリンダー" : "メッシュドーム");
+
+	// 分割数、サイズを設定
+	ObjectSetting();
+
+	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
+	{// ファイル書き出し
+		pMeshManager->WriteData("data\\mesh.txt", "data\\mesh.bin");
+	}
+
+	if (pInputKeyboard->GetTrigger(DIK_F10) == true)
+	{// ファイル書き出し
+		pMeshManager->ReadData("data\\mesh.bin");
+	}
+
+	// 外部ファイルに関するコメント
+	pDebugProc->Print("リセット [ F6 ]\n");
+	pDebugProc->Print("書き出し [ F9 ]\n");
+	pDebugProc->Print("読み込み [ F10 ]\n");
+
+	if (pMesh != nullptr)
+	{// NULLチェック
+		// モード切替
+		if (pInputKeyboard->GetTrigger(DIK_TAB) == true)
+		{// モード切替
+			m_mode = (m_mode + 1) % MODE_MAX;
+		}
+
+		// 全体操作に関するコメント
+		pDebugProc->Print("\n****** 全体操作 ******\n");
+		pDebugProc->Print("現在の操作モード [ TAB ] : ( %s )\n",
+			(m_mode == MODE_POS) ? "移動" :
+			(m_mode == MODE_ROT) ? "回転" : "拡縮");
+
+		// 位置、回転、スケールをコントロール
+		PosRotScaleControll();
+
+		// 頂点操作に関するコメント
+		pDebugProc->Print("\n****** 頂点操作 ******\n");
+		pDebugProc->Print("頂点の選択 [ Q ←→ E ]\n");
+		pDebugProc->Print("現在の頂点番号 ( %d )\n", pMesh->GetVtxIdx());
+		pDebugProc->Print("X軸移動 [ T > G ] : ( %f )\n", pMesh->GetVtxPos().x);
+		pDebugProc->Print("Y軸移動 [ Y > H ] : ( %f )\n", pMesh->GetVtxPos().y);
+		pDebugProc->Print("Z軸移動 [ U > J ] : ( %f )\n", pMesh->GetVtxPos().z);
+	}
+
+	if (pInputKeyboard->GetTrigger(DIK_F6) == true)
+	{// 配置リセット
+		pMeshManager->ResetData();
+	}
+}
+
+//========================================================================
+// コンソールクラスの描画処理
+//========================================================================
+void CConsole::Draw(void)
+{
+}
+
+//========================================================================
+// 分割数、サイズを設定
+//========================================================================
+void CConsole::ObjectSetting(void)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	static bool bXY = true;
 
 	// X/Y
@@ -151,7 +240,7 @@ void CConsole::Update(void)
 			m_block.y -= 1.0f;
 		}
 	}
-	
+
 	// サイズ
 	if (pInputKeyboard->GetRepeat(DIK_RIGHT) == true)
 	{// 上げる
@@ -176,74 +265,127 @@ void CConsole::Update(void)
 		}
 	}
 
-	// オブジェクト切り替え
-	if (pInputKeyboard->GetTrigger(DIK_1) == true)
-	{// モード切替
-		m_type = (m_type + (MESH_MAX - 1)) % MESH_MAX;
-	}
-	else if (pInputKeyboard->GetTrigger(DIK_2) == true)
-	{// モード切替
-		m_type = (m_type + 1) % MESH_MAX;
-	}
-
-	if (pInputKeyboard->GetTrigger(DIK_RETURN) == true)
-	{// エンター
-		pMeshManager->Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, m_block, m_size, m_type);
-	}
-
-	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
-	{// ファイル書き出し
-		pMeshManager->WriteData("data\\mesh.txt", "data\\mesh.bin");
-	}
-	
-	if (pInputKeyboard->GetTrigger(DIK_F10) == true)
-	{// ファイル書き出し
-		pMeshManager->ReadData("data\\mesh.bin");
-	}
-
-	// 配置に関するコメント
-	pDebugProc->Print("\n*** 配置 ***\n");
-	pDebugProc->Print("オブジェクト配置 [ ENTER ]\n");
-	pDebugProc->Print("オブジェクトの種類 [ 1 ←→ 2 ] : %s\n",
-		(m_type == MESHWALL) ? "メッシュウォール" :
-		(m_type == MESHFIELD) ? "メッシュフィールド" :
-		(m_type == MESHRING) ? "メッシュリング" :
-		(m_type == MESHCYLINDER) ? "メッシュシリンダー" : "メッシュドーム");
+	// 分割数、サイズに関するコメント
 	pDebugProc->Print("X/Y切り替え [ 右SHIFT ] : ( %s )\n", (bXY) ? "X" : "Y");
 	pDebugProc->Print("分割数 [ ↑/↓ ] : ( %f %f )\n", m_block.x, m_block.y);
 	pDebugProc->Print("サイズ [ ←/→ ] : ( %f %f )\n", m_size.x, m_size.y);
-	pDebugProc->Print("リセット [ F6 ]\n");
-	pDebugProc->Print("書き出し [ F9 ]\n");
-	pDebugProc->Print("読み込み [ F10 ]\n");
-
-	if (pMesh != nullptr)
-	{// NULLチェック
-		// 頂点操作に関するコメント
-		pDebugProc->Print("\n****** 頂点操作 ******\n");
-		pDebugProc->Print("頂点の選択 [ Q ←→ E ]\n");
-		pDebugProc->Print("現在の頂点番号 ( %d )\n", pMesh->GetVtxIdx());
-		pDebugProc->Print("現在の位置 ( %f %f %f )\n", pMesh->GetPosition().x, pMesh->GetPosition().y, pMesh->GetPosition().z);
-		pDebugProc->Print("現在の向き ( %f %f %f )\n", pMesh->GetRotation().x, pMesh->GetRotation().y, pMesh->GetRotation().z);
-		pDebugProc->Print("全体X軸移動 [ 4 > 6 ]\n");
-		pDebugProc->Print("全体Y軸移動 [ 8 > 5 ]\n");
-		pDebugProc->Print("全体Z軸移動 [ 1 > 3 ]\n");
-		pDebugProc->Print("X軸回転 [ W > S ]\n");
-		pDebugProc->Print("Y軸回転 [ A > D ]\n");
-		pDebugProc->Print("Z軸回転 [ Z > C ]\n");
-		pDebugProc->Print("X軸移動 [ T > G ] : ( %f )\n", pMesh->GetVtxPos().x);
-		pDebugProc->Print("Y軸移動 [ Y > H ] : ( %f )\n", pMesh->GetVtxPos().y);
-		pDebugProc->Print("Z軸移動 [ U > J ] : ( %f )\n", pMesh->GetVtxPos().z);
-	}
-
-	if (pInputKeyboard->GetTrigger(DIK_F6) == true)
-	{// 配置リセット
-		pMeshManager->ResetData();
-	}
 }
 
 //========================================================================
-// コンソールクラスの描画処理
+// 位置、回転、スケールをコントロール
 //========================================================================
-void CConsole::Draw(void)
+void CConsole::PosRotScaleControll(void)
 {
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+	CMeshManager* pMeshManager = CManager::GetMeshManager();			// メッシュマネージャーの取得
+	CMesh* pMesh = pMeshManager->GetMesh();			// メッシュの取得
+	D3DXVECTOR3 pos, rot, scale;
+	pos = pMesh->GetPosition();
+	rot = pMesh->GetRotation();
+	scale = pMesh->GetScale();
+
+	switch (m_mode)
+	{
+	case MODE_POS:			// 移動
+		// 移動操作
+		if (pInputKeyboard->GetRepeat(DIK_W) == true)
+		{// X軸移動
+			pos.x += 5.0f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_S) == true)
+		{// X軸移動
+			pos.x -= 5.0f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_A) == true)
+		{// Y軸移動
+			pos.y += 5.0f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_D) == true)
+		{// Y軸移動
+			pos.y -= 5.0f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_Z) == true)
+		{// Z軸移動
+			pos.z += 5.0f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_C) == true)
+		{// Z軸移動
+			pos.z -= 5.0f;
+		}
+
+		// 位置を設定
+		pMesh->SetPosition(pos);
+
+		break;		
+		
+	case MODE_ROT:			// 回転
+		// 向き操作
+		if (pInputKeyboard->GetRepeat(DIK_W) == true)
+		{// X軸回転
+			rot.x += D3DX_PI * 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_S) == true)
+		{// X軸回転
+			rot.x -= D3DX_PI * 0.1f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_A) == true)
+		{// Y軸回転
+			rot.y += D3DX_PI * 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_D) == true)
+		{// Y軸回転
+			rot.y -= D3DX_PI * 0.1f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_Z) == true)
+		{// Z軸回転
+			rot.z += D3DX_PI * 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_C) == true)
+		{// Z軸回転
+			rot.z -= D3DX_PI * 0.1f;
+		}
+
+		// 向きを設定
+		pMesh->SetRotation(rot);
+
+		break;
+
+	case MODE_SCALE:		// 拡縮
+		// 拡縮操作
+		if (pInputKeyboard->GetRepeat(DIK_W) == true)
+		{// X軸拡縮
+			scale.x += 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_S) == true)
+		{// X軸拡縮
+			scale.x -= 0.1f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_A) == true)
+		{// Y軸拡縮
+			scale.y += 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_D) == true)
+		{// Y軸拡縮
+			scale.y -= 0.1f;
+		}
+		if (pInputKeyboard->GetRepeat(DIK_Z) == true)
+		{// Z軸拡縮
+			scale.z += 0.1f;
+		}
+		else if (pInputKeyboard->GetRepeat(DIK_C) == true)
+		{// Z軸拡縮
+			scale.z -= 0.1f;
+		}
+
+		// スケールを設定
+		pMesh->SetScale(scale);
+
+		break;
+	}
+
+	// 位置、回転、スケールに関するコメント
+	pDebugProc->Print("現在の位置 ( %f %f %f )\n", pos.x, pos.y, pos.z);
+	pDebugProc->Print("現在の向き ( %f %f %f )\n", rot.x, rot.y, rot.z);
+	pDebugProc->Print("現在のスケール ( %f %f %f )\n", scale.x, scale.y, scale.z);
 }

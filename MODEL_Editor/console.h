@@ -27,6 +27,15 @@ public:
 		MESH_MAX
 	};
 
+	// 全体操作モード
+	enum MODE
+	{
+		MODE_POS = 0,		// 移動
+		MODE_ROT,			// 回転
+		MODE_SCALE,			// 拡縮
+		MODE_MAX
+	};
+
 	CConsole(const int nPriority = PRIORITY_3);
 	virtual ~CConsole();
 
@@ -37,12 +46,15 @@ public:
 	void Update(void);
 	void Draw(void);
 
+	void ObjectSetting(void);
+	void PosRotScaleControll(void);
+
 	D3DXVECTOR3 GetPosition(void) { return DEFAULT_VECTOR3; }
 	D3DXVECTOR3 GetRotation(void) { return DEFAULT_VECTOR3; }
 
 private:
-	CObject* pObject;		// 生成したオブジェクト
 	int m_type;				// 配置できるオブジェクトの種類
+	int m_mode;				// 全体操作モード
 	D3DXVECTOR2 m_block;	// 分割数
 	D3DXVECTOR2 m_size;		// サイズ
 };	

@@ -221,6 +221,9 @@ void CMeshCylinder::Draw(void)
 	// カリングをOFFに設定
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
+	// 頂点法線正規化をオン
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+
 	// マトリックスを計算
 	CMesh::Draw();
 
@@ -239,6 +242,9 @@ void CMeshCylinder::Draw(void)
 	// ポリゴンの描画
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, m_nNumVtx, 0,
 		m_nNumIdx - 2);
+
+	// 頂点法線正規化をオフ
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, FALSE);
 
 	// カリングを戻す
 	pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);

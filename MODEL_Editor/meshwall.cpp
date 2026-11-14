@@ -212,6 +212,9 @@ void CMeshWall::Draw(void)
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
 	CTexture* pTexture = CManager::GetTexture();			// テクスチャへのポインタ
 
+	// 頂点法線正規化をオン
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+
 	// マトリックスを計算
 	CMesh::Draw();
 
@@ -231,8 +234,8 @@ void CMeshWall::Draw(void)
 	pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, m_nNumVtx, 0,
 		m_nNumIdx - 2);
 
-	// テクスチャステージステートの設定
-	pDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+	// 頂点法線正規化をオフ
+	pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, FALSE);
 }
 
 //========================================================================
