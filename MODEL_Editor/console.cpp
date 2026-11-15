@@ -181,6 +181,11 @@ void CConsole::Update(void)
 
 		m_pSample->SetDisp(false);
 
+		for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+		{
+			m_vpModel.at(nCntBone)->SetColor(COLOR_WHITE_ALPHA);
+		}
+
 		break;
 
 	case MODE_BONE:			// ボーン
@@ -196,6 +201,11 @@ void CConsole::Update(void)
 		Weight();
 
 		m_pSample->SetDisp(false);
+
+		for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+		{
+			m_vpModel.at(nCntBone)->SetColor(COLOR_WHITE_ALPHA);
+		}
 
 		break;
 	}
@@ -784,11 +794,20 @@ HRESULT CConsole::ReadData(const char* pFilename)
 		while (file >> line)
 		{
 			if (line.find("NUM_BONE") != std::string::npos)
-			{// モデル数
+			{// ボーン数
 				file >> line;				// =
 				file >> nNumBone;		// 数字
 
 				m_nNumBone = nNumBone;
+
+				if (pMesh != nullptr)
+				{// NULLチェック
+					// 位置のオフセットを生成
+					pMesh->CreatePosOff(m_nNumBone);
+
+					// ボーン関連を生成
+					pMesh->CreateBoneInfo(2);
+				}
 
 				continue;
 			}
@@ -860,7 +879,7 @@ HRESULT CConsole::ReadData(const char* pFilename)
 
 				// ボーンを生成
 				m_vpBone.push_back(CBone::Create(pos, rot));
-				m_vpModel.push_back(CObjectX::Create(pos, CObject::TYPE_NONE, "data\\MODEL\\bone.x"));
+				m_vpModel.push_back(CObjectX::Create(pos, CObject::TYPE_NONE, "data\\MODEL\\bone.x", 3));
 				m_vnParent.push_back(nParent);
 
 				// 親の設定
@@ -876,14 +895,15 @@ HRESULT CConsole::ReadData(const char* pFilename)
 					}
 				}
 
-				if (nCntBone == nNumBone - 1)
-				{// 設定する数分生成した
-					if (pMesh != nullptr)
-					{// NULLチェック
-						pMesh->CreateBoneInfo(2);
-					}
+				if (pMesh != nullptr)
+				{// NULLチェック
+					// 位置のオフセットを設定
+					pMesh->SetPosOff(nCntBone, pos);
 
-					break;
+					if (nCntBone == nNumBone - 1)
+					{// 設定する数分生成した
+						break;
+					}
 				}
 			}
 		}

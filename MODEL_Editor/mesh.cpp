@@ -21,6 +21,7 @@
 
 #include "effect_batching.h"
 #include "console.h"
+#include "bone.h"
 
 #include <fstream>
 #include <iostream>
@@ -100,6 +101,7 @@ CMesh::CMesh(const int nPriority) :CObject(nPriority)
 	m_nNumVtxAll = 0;
 	m_nNumIdxAll = 0;
 	m_nVtxIdx = 0;
+	m_pPosOff = nullptr;
 	m_pBoneRef = nullptr;
 	m_pWeight = nullptr;
 	m_nNumBone = 0;
@@ -139,6 +141,13 @@ void CMesh::Uninit(void)
 	{
 		m_pIdxBuff->Release();
 		m_pIdxBuff = nullptr;
+	}
+
+	// 頂点位置のオフセットの破棄
+	if (m_pPosOff != nullptr)
+	{
+		delete[] m_pPosOff;
+		m_pPosOff = nullptr;
 	}
 
 	// 影響を受けるボーンの破棄
@@ -216,7 +225,7 @@ void CMesh::Draw(void)
 {
 	CRenderer* pRenderer = CManager::GetRenderer();			// レンダラーへのポインタ
 	LPDIRECT3DDEVICE9 pDevice = pRenderer->GetDevice();		// デバイスへのポインタ
-	D3DXMATRIX mtxRot, mtxScale, mtxTrans;		// 計算用マトリックス
+	D3DXMATRIX mtxRot, mtxScale, mtxTrans, mtxBone;			// 計算用マトリックス
 
 	// ワールドマトリックスの初期化
 	D3DXMatrixIdentity(&m_mtxWorld);
@@ -232,6 +241,71 @@ void CMesh::Draw(void)
 	// 位置を反映
 	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
 	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
+
+	if (m_pBoneRef != nullptr && m_pWeight != nullptr)
+	{// NULLチェック
+		CConsole* pConsole = CManager::GetConsole();						// コンソールの取得
+		D3DXVECTOR3* pPosCorrect = new D3DXVECTOR3[m_nNumVtxAll];
+		VERTEX_3D* pVtx;
+
+		// 初期化
+		for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+		{
+			pPosCorrect[nCntVtx] = DEFAULT_VECTOR3;
+		}
+
+		for (int nCntBone = 0; nCntBone < pConsole->GetNumBone(); nCntBone++)
+		{
+			// ボーンの描画（マトリックスの計算）
+			pConsole->GetBone(nCntBone)->Draw();
+
+			// ボーンのマトリックスを取得
+			mtxBone = pConsole->GetBone(nCntBone)->GetMtxWorld();
+
+			// 全頂点データの算出
+			for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+			{
+				if (m_pBoneRef[0 * m_nNumVtxAll + nCntVtx] != nCntBone && m_pBoneRef[1 * m_nNumVtxAll + nCntVtx] != nCntBone)
+				{// 全く影響しない頂点は飛ばす
+					continue;
+				}
+
+				// 計算した位置
+				D3DXVECTOR3 pos = DEFAULT_VECTOR3;
+
+				// 頂点座標に変換
+				D3DXVec3TransformCoord(&pos, &m_pPosOff[nCntBone * m_nNumVtxAll + nCntVtx], &mtxBone);
+
+				// 頂点データの合計値を算出
+				if (m_pBoneRef[0 * m_nNumVtxAll + nCntVtx] == nCntBone)
+				{// 1つ目のボーン番号
+					pPosCorrect[nCntVtx] += pos * m_pWeight[0 * m_nNumVtxAll + nCntVtx];
+				}
+				else if (m_pBoneRef[1 * m_nNumVtxAll + nCntVtx] == nCntBone)
+				{// 2つ目のボーン番号
+					pPosCorrect[nCntVtx] += pos * m_pWeight[1 * m_nNumVtxAll + nCntVtx];
+				}
+			}
+		}
+
+		// 頂点バッファをロックし、頂点情報へのポインタを取得
+		m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
+
+		// 頂点座標を設定
+		for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+		{
+			pVtx[nCntVtx].pos = pPosCorrect[nCntVtx];
+		}
+
+		if (pPosCorrect != nullptr)
+		{// NULLチェック
+			delete[] pPosCorrect;
+			pPosCorrect = nullptr;
+		}
+
+		// 頂点バッファをアンロックする
+		m_pVtxBuff->Unlock();
+	}
 
 	// ワールドマトリックスの設定
 	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
@@ -325,11 +399,11 @@ void CMesh::WeightControll(void)
 	}
 
 	// 頂点操作
-	if (pInputKeyboard->GetRepeat(DIK_E) == true)
+	if (pInputKeyboard->GetRepeat(DIK_S) == true)
 	{// 次の頂点
 		m_nVtxIdx = (m_nVtxIdx + 1) % m_nNumVtxAll;
 	}
-	else if (pInputKeyboard->GetRepeat(DIK_Q) == true)
+	else if (pInputKeyboard->GetRepeat(DIK_W) == true)
 	{// 前の頂点
 		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
 	}
@@ -559,6 +633,25 @@ HRESULT CMesh::CreateIdxBuff(const int nValue)
 }
 
 //========================================================================
+// 位置のオフセットを生成
+//========================================================================
+void CMesh::CreatePosOff(const int nNumBone)
+{
+	if (m_pPosOff == nullptr)
+	{// NULLチェック
+		m_pPosOff = new D3DXVECTOR3[nNumBone * m_nNumVtxAll];
+
+		if (m_pPosOff != nullptr)
+		{// NULLチェック
+			for (int nCnt = 0; nCnt < nNumBone * m_nNumVtxAll; nCnt++)
+			{
+				m_pPosOff[nCnt] = DEFAULT_VECTOR3;
+			}
+		}
+	}
+}
+
+//========================================================================
 // ボーン関連を生成
 //========================================================================
 void CMesh::CreateBoneInfo(const int nNumBone)
@@ -590,6 +683,30 @@ void CMesh::CreateBoneInfo(const int nNumBone)
 	}
 
 	m_nNumBone = nNumBone;
+}
+
+//========================================================================
+// 頂点位置のオフセットを設定
+//========================================================================
+void CMesh::SetPosOff(const int nIdxBone, const D3DXVECTOR3 posBone)
+{
+	if (m_pPosOff == nullptr)
+	{// NULLチェック
+		return;
+	}
+
+	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
+
+	// 頂点バッファをロックし、頂点情報へのポインタを取得
+	m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
+
+	for (int nCnt = 0; nCnt < m_nNumVtxAll; nCnt++)
+	{
+		m_pPosOff[nCnt + nIdxBone * m_nNumVtxAll] = pVtx[nCnt].pos - posBone;
+	}
+
+	// 頂点バッファをアンロックする
+	m_pVtxBuff->Unlock();
 }
 
 //========================================================================

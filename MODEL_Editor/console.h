@@ -76,6 +76,7 @@ public:
 	HRESULT ReadData(const char* pFilename);
 
 	int GetNumBone(void) { return m_nNumBone; }
+	CBone* GetBone(const int nIdx) { return m_vpBone.at(nIdx); }
 	D3DXVECTOR3 GetPosition(void) { return DEFAULT_VECTOR3; }
 	D3DXVECTOR3 GetRotation(void) { return DEFAULT_VECTOR3; }
 

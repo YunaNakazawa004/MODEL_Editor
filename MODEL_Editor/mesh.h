@@ -62,7 +62,9 @@ public:
 	LPDIRECT3DVERTEXBUFFER9 GetVtxBuff(void) { return m_pVtxBuff; }
 	LPDIRECT3DINDEXBUFFER9 GetIdxBuff(void) { return m_pIdxBuff; }
 
+	void CreatePosOff(const int nNumBone);
 	void CreateBoneInfo(const int nNumBone);
+	void SetPosOff(const int nIdxBone, const D3DXVECTOR3 posBone);
 	int* GetBoneRef(void) { return m_pBoneRef; }
 	float* GetWeight(void) { return m_pWeight; }
 
@@ -86,6 +88,7 @@ private:
 	int m_nNumVtxAll;			// 頂点の総数
 	int m_nNumIdxAll;			// インデックスの総数
 	int m_nVtxIdx;				// 選択されている頂点
+	D3DXVECTOR3* m_pPosOff;		// 頂点位置のオフセット
 	int* m_pBoneRef;			// 影響を受けるボーン
 	float* m_pWeight;			// ウェイト
 	int m_nNumBone;				// 設定するボーン数
