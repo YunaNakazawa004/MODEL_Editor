@@ -50,7 +50,9 @@ int CManager::m_nCountFPS = 0;							// FPSカウンター
 bool CManager::m_bPause = false;						// ポーズするかしないか
 bool CManager::m_bResetCall = false;					// リセットしたいかどうか
 HWND CManager::m_hWnd = nullptr;						// 保存用
-D3DXVECTOR2 CManager::m_limit = DEFAULT_VECTOR2;		// 移動限界
+D3DXVECTOR2 CManager::m_limit = DEFAULT_VECTOR2;		// 移動限界	
+DWORD CManager::m_dwLastSaveTime = 0;					// 最後に保存した時間
+DWORD CManager::m_dwTime = 0;							// 経過時間
 
 //========================================================================
 // マネージャークラスのコンストラクタ
@@ -77,6 +79,8 @@ CManager::CManager()
 	m_bResetCall = false;
 	m_hWnd = nullptr;
 	m_limit = DEFAULT_VECTOR2;
+	m_dwLastSaveTime = 0;
+	m_dwTime = 0;
 }
 
 //========================================================================
@@ -288,6 +292,10 @@ HRESULT CManager::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	m_nCountFPS = 0;
 	m_hWnd = hWnd;
 
+	// 開始時刻を取得
+	m_dwLastSaveTime = timeGetTime();
+	m_dwTime = 0;
+
 	return S_OK;
 }
 
@@ -296,6 +304,10 @@ HRESULT CManager::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 //========================================================================
 void CManager::Uninit(void)
 {
+	// 現在の進捗を保存
+	m_pMeshManager->WriteData("data\\save\\auto\\LastMesh.txt", "data\\save\\auto\\LastMesh.bin");
+	m_pConsole->WriteData("data\\save\\auto\\LastBone.txt");
+
 	// 全てのオブジェクトを破棄
 	CObject::ReleaseAll();
 
@@ -461,6 +473,19 @@ void CManager::Update(void)
 	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(50000.0f, 0.0f, 0.0f), COLOR_RED, COLOR_RED);
 	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(0.0f, 50000.0f, 0.0f), COLOR_GREEN, COLOR_GREEN);
 	CLine::Create(DEFAULT_VECTOR3, D3DXVECTOR3(0.0f, 0.0f, 50000.0f), COLOR_SKYBLUE, COLOR_SKYBLUE);
+
+	// 時間経過を計算
+	m_dwTime = timeGetTime() - m_dwLastSaveTime;
+
+	// 自動保存
+	if (m_dwTime > AUTO_SAVE)
+	{// 一定時間が経過した
+		m_dwLastSaveTime = timeGetTime();
+
+		// 現在の進捗を保存
+		m_pMeshManager->WriteData("data\\save\\auto\\AutoMesh.txt", "data\\save\\auto\\AutoMesh.bin");
+		m_pConsole->WriteData("data\\save\\auto\\AutoBone.txt");
+	}
 
 	if (m_bPause == false)
 	{// ポーズしていないときだけ

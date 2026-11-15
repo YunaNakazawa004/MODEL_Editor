@@ -63,6 +63,8 @@ public:
 	LPDIRECT3DINDEXBUFFER9 GetIdxBuff(void) { return m_pIdxBuff; }
 
 	void CreateBoneInfo(const int nNumBone);
+	int* GetBoneRef(void) { return m_pBoneRef; }
+	float* GetWeight(void) { return m_pWeight; }
 
 	int GetVtxNum(void) { return m_nNumVtxAll; }
 	int GetIdxNum(void) { return m_nNumIdxAll; }

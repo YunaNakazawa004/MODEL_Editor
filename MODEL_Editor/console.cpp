@@ -24,6 +24,10 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 //************************************************************************
 // マクロ定義
@@ -198,14 +202,14 @@ void CConsole::Update(void)
 
 	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
 	{// ファイル書き出し
-		pMeshManager->WriteData("data\\mesh.txt", "data\\mesh.bin");
-		WriteData("data\\bone.txt");
+		pMeshManager->WriteData("data\\save\\mesh.txt", "data\\save\\mesh.bin");
+		WriteData("data\\save\\bone.txt");
 	}
 
 	if (pInputKeyboard->GetTrigger(DIK_F10) == true)
 	{// ファイル読み込み
-		pMeshManager->ReadData("data\\mesh.bin");
-		ReadData("data\\bone.txt");
+		pMeshManager->ReadData("data\\save\\mesh.bin");
+		ReadData("data\\save\\bone.txt");
 	}
 
 	if (pInputKeyboard->GetTrigger(DIK_F6) == true)
@@ -701,6 +705,25 @@ HRESULT CConsole::WriteData(const char* pFilename)
 
 			filetxt.write(str.c_str(), str.size());
 		}
+
+		// 現在時刻を取得
+		std::ostringstream oss;
+		auto now = std::chrono::system_clock::now();
+		std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+		// ローカル時刻にする
+		std::tm tm_now{};
+		localtime_s(&tm_now, &now_c);		// Windowsの場合
+
+		// フォーマット
+		oss << std::put_time(&tm_now, "%Y%m%d%H%M%S");
+
+		// 現在時刻を入れておく
+		str.clear();
+		str = "#";
+		str += oss.str();
+		str += "\n";
+		filetxt.write(str.c_str(), str.size());
 
 		// ファイルを閉じる
 		filetxt.close();

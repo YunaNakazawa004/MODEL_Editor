@@ -17,6 +17,7 @@
 
 #define ONE_GAME			(5)				// 1ゲームのフェーズ回数
 #define MAX_RANKING			(5)				// ランキングの最大数
+#define AUTO_SAVE			(18000)			// 自動保存の間隔
 
 //************************************************************************
 // 前方宣言
@@ -98,6 +99,8 @@ private:
 	static bool m_bResetCall;		// リセットしたいかどうか
 	static HWND m_hWnd;				// 保存用
 	static D3DXVECTOR2 m_limit;		// 移動限界
+	static DWORD m_dwLastSaveTime;	// 最後に保存した時間
+	static DWORD m_dwTime;			// 経過時間
 };
 
 //************************************************************************

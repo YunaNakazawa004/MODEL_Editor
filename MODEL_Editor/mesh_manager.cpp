@@ -183,6 +183,46 @@ HRESULT CMeshManager::ReadData(const char* pFilename)
 		// インデックスバッファをアンロックする
 		m_apMesh->GetIdxBuff()->Unlock();
 
+		// ボーン関係の読み込み
+		int nNumBone = 0;
+
+		file.read((char*)&nNumBone, sizeof(nNumBone));
+
+		m_apMesh->CreateBoneInfo(nNumBone);
+
+		int* pBoneRefMesh = m_apMesh->GetBoneRef();
+		float* pWeightMesh = m_apMesh->GetWeight();
+		int* pBoneRef = new int[nNumBone * nNumVtx];
+		float* pWeight = new float[nNumBone * nNumVtx];
+
+		if (pBoneRef != nullptr && pWeight != nullptr)
+		{// NULLチェック
+			for (int nCntBoneVtx = 0; nCntBoneVtx < nNumBone * nNumVtx; nCntBoneVtx++)
+			{
+				file.read((char*)&pBoneRef[nCntBoneVtx], sizeof(int));
+			}
+
+			for (int nCntBoneVtx = 0; nCntBoneVtx < nNumBone * nNumVtx; nCntBoneVtx++)
+			{
+				file.read((char*)&pWeight[nCntBoneVtx], sizeof(float));
+			}
+
+			memcpy(pBoneRefMesh, pBoneRef, sizeof(int) * nNumBone * nNumVtx);
+			memcpy(pWeightMesh, pWeight, sizeof(float) * nNumBone * nNumVtx);
+		}
+
+		if (pBoneRef != nullptr)
+		{// NULLチェック
+			delete[] pBoneRef;
+			pBoneRef = nullptr;
+		}
+		
+		if (pWeight != nullptr)
+		{// NULLチェック
+			delete[] pWeight;
+			pWeight = nullptr;
+		}
+
 		// ファイルを閉じる
 		file.close();
 	}

@@ -748,6 +748,22 @@ HRESULT CMesh::WriteBinData(const char* pFilename)
 		// インデックスバッファをアンロックする
 		GetIdxBuff()->Unlock();
 
+		// ボーン関係のものを書き込み
+		if (m_pBoneRef != nullptr && m_pWeight != nullptr)
+		{// NULLチェック
+			filebin.write((const char*)&m_nNumBone, sizeof(m_nNumBone));
+
+			for (int nCntBoneVtx = 0; nCntBoneVtx < m_nNumBone * m_nNumVtxAll; nCntBoneVtx++)
+			{
+				filebin.write((const char*)&m_pBoneRef[nCntBoneVtx], sizeof(int));
+			}
+
+			for (int nCntBoneVtx = 0; nCntBoneVtx < m_nNumBone * m_nNumVtxAll; nCntBoneVtx++)
+			{
+				filebin.write((const char*)&m_pWeight[nCntBoneVtx], sizeof(float));
+			}
+		}
+
 		// ファイルを閉じる
 		filebin.close();
 	}
