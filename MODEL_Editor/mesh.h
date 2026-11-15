@@ -41,6 +41,7 @@ public:
 	virtual void Draw(void);
 
 	void Controll(void);
+	void WeightControll(void);
 
 	void SetPosition(const D3DXVECTOR3 pos);
 	D3DXVECTOR3 GetPosition(void) { return m_pos; }
@@ -60,6 +61,8 @@ public:
 	HRESULT CreateIdxBuff(const int nValue);
 	LPDIRECT3DVERTEXBUFFER9 GetVtxBuff(void) { return m_pVtxBuff; }
 	LPDIRECT3DINDEXBUFFER9 GetIdxBuff(void) { return m_pIdxBuff; }
+
+	void CreateBoneInfo(const int nNumBone);
 
 	int GetVtxNum(void) { return m_nNumVtxAll; }
 	int GetIdxNum(void) { return m_nNumIdxAll; }
@@ -81,6 +84,9 @@ private:
 	int m_nNumVtxAll;			// 頂点の総数
 	int m_nNumIdxAll;			// インデックスの総数
 	int m_nVtxIdx;				// 選択されている頂点
+	int* m_pBoneRef;			// 影響を受けるボーン
+	float* m_pWeight;			// ウェイト
+	int m_nNumBone;				// 設定するボーン数
 	int m_type;					// 種類
 	bool m_bCalc;				// 移動させたり計算したりするかどうか
 };

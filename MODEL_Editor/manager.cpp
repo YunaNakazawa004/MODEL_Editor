@@ -45,6 +45,7 @@ CTexture* CManager::m_pTexture = nullptr;				// テクスチャのインスタンス
 CXModel* CManager::m_pXModel = nullptr;					// モデル管理のインスタンス
 CEffectBatching* CManager::m_pEffectBatching = nullptr;	// バッチ描画エフェクトのインスタンス
 CMeshManager* CManager::m_pMeshManager = nullptr;		// メッシュマネージャーのインスタンス
+CConsole* CManager::m_pConsole = nullptr;				// コンソールのインスタンス
 int CManager::m_nCountFPS = 0;							// FPSカウンター
 bool CManager::m_bPause = false;						// ポーズするかしないか
 bool CManager::m_bResetCall = false;					// リセットしたいかどうか
@@ -70,6 +71,7 @@ CManager::CManager()
 	m_pXModel = nullptr;
 	m_pEffectBatching = nullptr;
 	m_pMeshManager = nullptr;
+	m_pConsole = nullptr;
 	m_nCountFPS = 0;
 	m_bPause = false;
 	m_bResetCall = false;
@@ -264,13 +266,23 @@ HRESULT CManager::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 			return E_FAIL;
 		}
 	}
-
+	
 	// 空
 	CMeshDome* pMeshDome = CMeshDome::Create(DEFAULT_VECTOR3, DEFAULT_VECTOR3, D3DXVECTOR2(16.0f, 8.0f), 50000.0f, "data\\TEXTURE\\sky001.png", CObject::TYPE_NONE, 3);
 	pMeshDome->SetCalc(false);
 
 	// コンソールの生成
-	CConsole::Create(DEFAULT_VECTOR3);
+	if (m_pConsole == nullptr)
+	{// NULLチェック
+		m_pConsole = CConsole::Create(DEFAULT_VECTOR3);
+
+		if (m_pConsole == nullptr)
+		{// NULLチェック
+			OutputDebugStringA("! ! ! コンソールの生成に失敗しました ! ! !\n");
+
+			return E_FAIL;
+		}
+	}
 
 	// FPSカウンタを初期化
 	m_nCountFPS = 0;
@@ -290,6 +302,12 @@ void CManager::Uninit(void)
 	// オブジェクトのテクスチャを破棄
 	CEffectBatching::Unload();
 
+	// コンソールの破棄
+	if (m_pConsole != nullptr)
+	{// NULLチェック
+		m_pConsole = nullptr;
+	}
+	
 	// バッチ描画エフェクトの破棄
 	if (m_pEffectBatching != nullptr)
 	{// NULLチェック
@@ -555,7 +573,15 @@ void CManager::Reset(void)
 	pMeshDome->SetCalc(false);
 
 	// コンソールの生成
-	CConsole::Create(DEFAULT_VECTOR3);
+	if (m_pConsole == nullptr)
+	{// NULLチェック
+		m_pConsole = CConsole::Create(DEFAULT_VECTOR3);
+
+		if (m_pConsole == nullptr)
+		{// NULLチェック
+			OutputDebugStringA("! ! ! コンソールの生成に失敗しました ! ! !\n");
+		}
+	}
 
 	// ポーズを解除
 	m_bPause = false;

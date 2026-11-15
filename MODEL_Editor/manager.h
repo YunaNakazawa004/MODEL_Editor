@@ -34,6 +34,7 @@ class CTexture;
 class CXModel;
 class CEffectBatching;
 class CMeshManager;
+class CConsole;
 
 //************************************************************************
 // マネージャークラス
@@ -62,6 +63,7 @@ public:
 	static CXModel* GetXModel(void) { return m_pXModel; }
 	static CEffectBatching* GetEffectBatching(void) { return m_pEffectBatching; }
 	static CMeshManager* GetMeshManager(void) { return m_pMeshManager; }
+	static CConsole* GetConsole(void) { return m_pConsole; }
 
 	static int GetFPS(void) { return m_nCountFPS; }
 	static void SetFPS(const int nCountFPS) { m_nCountFPS = nCountFPS; };
@@ -89,6 +91,7 @@ private:
 	static CXModel* m_pXModel;						// モデル管理のインスタンス
 	static CEffectBatching* m_pEffectBatching;		// バッチ描画エフェクトのインスタンス
 	static CMeshManager* m_pMeshManager;			// メッシュマネージャーのインスタンス
+	static CConsole* m_pConsole;					// コンソールのインスタンス
 
 	static int m_nCountFPS;			// FPSカウンター
 	static bool m_bPause;			// ポーズするかしないか

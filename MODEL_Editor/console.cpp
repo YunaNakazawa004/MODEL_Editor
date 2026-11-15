@@ -186,6 +186,14 @@ void CConsole::Update(void)
 		m_pSample->SetDisp(true);
 
 		break;
+
+	case MODE_WEIGHT:		// ボーンウェイト
+		// ウェイト処理
+		Weight();
+
+		m_pSample->SetDisp(false);
+
+		break;
 	}
 
 	if (pInputKeyboard->GetTrigger(DIK_F9) == true)
@@ -561,7 +569,7 @@ void CConsole::Bone(void)
 		pDebugProc->Print("[ %d ] ", nCntBone);
 		pDebugProc->Print("現在の位置 : ( %f %f %f )\n",
 			m_vpBone.at(nCntBone)->GetPosition().x, m_vpBone.at(nCntBone)->GetPosition().y, m_vpBone.at(nCntBone)->GetPosition().z);
-		pDebugProc->Print("親 [ F ] : ( %d )\n", m_vnParent.at(nCntBone));
+		pDebugProc->Print("    親 [ F ] : ( %d )\n", m_vnParent.at(nCntBone));
 	}
 }
 
@@ -633,6 +641,23 @@ D3DXVECTOR3 CConsole::Movement(D3DXVECTOR3* pOut)
 }
 
 //========================================================================
+// ボーンウェイト処理
+//========================================================================
+void CConsole::Weight(void)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+	CMeshManager* pMeshManager = CManager::GetMeshManager();			// メッシュマネージャーの取得
+	CMesh* pMesh = pMeshManager->GetMesh();			// メッシュの取得
+
+	if (pMesh != nullptr)
+	{// NULLチェック
+		// ウェイトコントロール
+		pMesh->WeightControll();
+	}
+}
+
+//========================================================================
 // ボーンの書き込み処理
 //========================================================================
 HRESULT CConsole::WriteData(const char* pFilename)
@@ -695,6 +720,9 @@ HRESULT CConsole::WriteData(const char* pFilename)
 //========================================================================
 HRESULT CConsole::ReadData(const char* pFilename)
 {
+	CMeshManager* pMeshManager = CManager::GetMeshManager();			// メッシュマネージャーの取得
+	CMesh* pMesh = pMeshManager->GetMesh();			// メッシュの取得
+
 	// ファイルオープン
 	std::ifstream file(pFilename);
 
@@ -827,6 +855,11 @@ HRESULT CConsole::ReadData(const char* pFilename)
 
 				if (nCntBone == nNumBone - 1)
 				{// 設定する数分生成した
+					if (pMesh != nullptr)
+					{// NULLチェック
+						pMesh->CreateBoneInfo(2);
+					}
+
 					break;
 				}
 			}

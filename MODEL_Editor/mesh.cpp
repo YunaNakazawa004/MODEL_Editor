@@ -20,6 +20,7 @@
 #include "meshdome.h"
 
 #include "effect_batching.h"
+#include "console.h"
 
 #include <fstream>
 #include <iostream>
@@ -99,6 +100,9 @@ CMesh::CMesh(const int nPriority) :CObject(nPriority)
 	m_nNumVtxAll = 0;
 	m_nNumIdxAll = 0;
 	m_nVtxIdx = 0;
+	m_pBoneRef = nullptr;
+	m_pWeight = nullptr;
+	m_nNumBone = 0;
 	m_type = 0;
 	m_bCalc = true;
 }
@@ -124,17 +128,31 @@ HRESULT CMesh::Init(void)
 void CMesh::Uninit(void)
 {
 	// 頂点バッファの破棄
-	if (m_pVtxBuff != NULL)
+	if (m_pVtxBuff != nullptr)
 	{
 		m_pVtxBuff->Release();
-		m_pVtxBuff = NULL;
+		m_pVtxBuff = nullptr;
 	}
 
 	// インデックスバッファの破棄
-	if (m_pIdxBuff != NULL)
+	if (m_pIdxBuff != nullptr)
 	{
 		m_pIdxBuff->Release();
-		m_pIdxBuff = NULL;
+		m_pIdxBuff = nullptr;
+	}
+
+	// 影響を受けるボーンの破棄
+	if (m_pBoneRef != nullptr)
+	{
+		delete[] m_pBoneRef;
+		m_pBoneRef = nullptr;
+	}
+
+	// ウェイトの破棄
+	if (m_pWeight != nullptr)
+	{
+		delete[] m_pWeight;
+		m_pWeight = nullptr;
 	}
 
 	// 自分自身を破棄
@@ -290,6 +308,138 @@ void CMesh::Controll(void)
 }
 
 //========================================================================
+// ウェイトコントロール
+//========================================================================
+void CMesh::WeightControll(void)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+	CConsole* pConsole = CManager::GetConsole();						// コンソールの取得
+	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
+	static int nBone = 0;
+	static bool bWeight = false;
+
+	if (m_pVtxBuff == nullptr)
+	{// NULLチェック
+		return;
+	}
+
+	// 頂点操作
+	if (pInputKeyboard->GetRepeat(DIK_E) == true)
+	{// 次の頂点
+		m_nVtxIdx = (m_nVtxIdx + 1) % m_nNumVtxAll;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_Q) == true)
+	{// 前の頂点
+		m_nVtxIdx = (m_nVtxIdx + (m_nNumVtxAll - 1)) % m_nNumVtxAll;
+	}
+
+	// ボーン番号
+	if (pInputKeyboard->GetRepeat(DIK_RIGHT) == true || pInputKeyboard->GetRepeat(DIK_LEFT) == true)
+	{// 次のボーン
+		nBone = (nBone + 1) % m_nNumBone;
+	}
+
+	// ボーン番号かウェイトか
+	if (pInputKeyboard->GetRepeat(DIK_DOWN) == true || pInputKeyboard->GetRepeat(DIK_UP) == true)
+	{// 次のボーン
+		bWeight = (bWeight) ? false : true;
+	}
+
+	pDebugProc->Print("\n****** 頂点 ******\n");
+
+	// 頂点バッファをロックし、頂点情報へのポインタを取得
+	m_pVtxBuff->Lock(0, 0, (void**)&pVtx, 0);
+
+	// 頂点情報の設定
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
+		if (m_nVtxIdx == nCntVtx)
+		{// 操作されている番号
+			pDebugProc->Print("●[ %d ] : ", nCntVtx);
+		}
+		else if (nCntVtx > m_nVtxIdx - 2 && nCntVtx < m_nVtxIdx + 2)
+		{// 操作されていない番号で近いもの
+			pDebugProc->Print("[ %d ] : ", nCntVtx);
+			pDebugProc->Print("ボーン ( %d %d )\n", m_pBoneRef[nCntVtx], m_pBoneRef[m_nNumVtxAll + nCntVtx]);
+			pDebugProc->Print("        ウェイト : ( %f %f )\n", m_pWeight[nCntVtx], m_pWeight[m_nNumVtxAll + nCntVtx]);
+
+			continue;
+		}
+		else
+		{// ほとんど関係ないもの
+			continue;
+		}
+
+		if (bWeight == false)
+		{// ボーンを設定
+			pDebugProc->Print("ボーン ( ");
+
+			for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+			{
+				if (nBone == nCntBone)
+				{// 操作しているボーン番号
+					pDebugProc->Print("<%d>", m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx]);
+
+					if (pInputKeyboard->GetRepeat(DIK_D) == true)
+					{// 次のボーン
+						m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx] =
+							(m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx] + 1) % pConsole->GetNumBone();
+					}
+					else if (pInputKeyboard->GetRepeat(DIK_A) == true)
+					{// 前のボーン
+						m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx] =
+							(m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx] + (pConsole->GetNumBone() - 1)) % pConsole->GetNumBone();
+					}
+				}
+				else
+				{// 操作されていない
+					pDebugProc->Print("%d", m_pBoneRef[nCntBone * m_nNumVtxAll + nCntVtx]);
+				}
+
+				pDebugProc->Print(" ");
+			}
+
+			pDebugProc->Print(")\n");
+			pDebugProc->Print("        ウェイト : ( %f %f )\n", m_pWeight[nCntVtx], m_pWeight[m_nNumVtxAll + nCntVtx]);
+		}
+		else
+		{// ウェイトを設定
+			pDebugProc->Print("ボーン ( %d %d )\n", m_pBoneRef[nCntVtx], m_pBoneRef[m_nNumVtxAll + nCntVtx]);
+			pDebugProc->Print("        ウェイト : ( ");
+
+			for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+			{
+				if (nBone == nCntBone)
+				{// 操作しているボーン番号
+					pDebugProc->Print("<%f>", m_pWeight[nCntBone * m_nNumVtxAll + nCntVtx]);
+
+					if (pInputKeyboard->GetRepeat(DIK_D) == true)
+					{// 増やす
+						m_pWeight[nCntBone * m_nNumVtxAll + nCntVtx] += 0.05f;
+					}
+					else if (pInputKeyboard->GetRepeat(DIK_A) == true)
+					{// 減らす
+						m_pWeight[nCntBone * m_nNumVtxAll + nCntVtx] -= 0.05f;
+					}
+				}
+				else
+				{// 操作されていない
+					pDebugProc->Print("%f", m_pWeight[nCntBone * m_nNumVtxAll + nCntVtx]);
+				}
+
+				pDebugProc->Print(" ");
+			}
+
+			pDebugProc->Print(")\n");
+		}
+	}
+
+	// 頂点バッファをアンロックする
+	m_pVtxBuff->Unlock();
+}
+
+//========================================================================
 // 位置設定
 //========================================================================
 void CMesh::SetPosition(const D3DXVECTOR3 pos)
@@ -409,6 +559,40 @@ HRESULT CMesh::CreateIdxBuff(const int nValue)
 }
 
 //========================================================================
+// ボーン関連を生成
+//========================================================================
+void CMesh::CreateBoneInfo(const int nNumBone)
+{
+	if (m_pBoneRef == nullptr)
+	{// NULLチェック
+		m_pBoneRef = new int[nNumBone * m_nNumVtxAll];
+
+		if (m_pBoneRef != nullptr)
+		{// NULLチェック
+			for (int nCnt = 0; nCnt < nNumBone * m_nNumVtxAll; nCnt++)
+			{
+				m_pBoneRef[nCnt] = 0;
+			}
+		}
+	}
+
+	if (m_pWeight == nullptr)
+	{// NULLチェック
+		m_pWeight = new float[nNumBone * m_nNumVtxAll];
+
+		if (m_pWeight != nullptr)
+		{// NULLチェック
+			for (int nCnt = 0; nCnt < nNumBone * m_nNumVtxAll; nCnt++)
+			{
+				m_pWeight[nCnt] = 0.0f;
+			}
+		}
+	}
+
+	m_nNumBone = nNumBone;
+}
+
+//========================================================================
 // 選択された頂点の座標
 //========================================================================
 D3DXVECTOR3 CMesh::GetVtxPos(void)
@@ -459,8 +643,26 @@ HRESULT CMesh::WriteTxtData(const char* pFilename)
 			str += " ";
 			str += std::to_string(pos.z);
 			str += "\n";
-			str += "\t\tBONE_REF = 0 1\n";
-			str += "\t\tWEIGHT_VALUE = 0.0 1.0\n";
+
+			if (m_pBoneRef != nullptr && m_pWeight != nullptr)
+			{// NULLチェック
+				str += "\t\tBONE_REF = ";
+				str += std::to_string(m_pBoneRef[nCntVtx]);
+				str += " ";
+				str += std::to_string(m_pBoneRef[m_nNumVtxAll + nCntVtx]);
+				str += "\n";
+				str += "\t\tWEIGHT_VALUE = ";
+				str += std::to_string(m_pWeight[nCntVtx]);
+				str += " ";
+				str += std::to_string(m_pWeight[m_nNumVtxAll + nCntVtx]);
+				str += "\n";
+			}
+			else
+			{// もしNULLだったら
+				str += "\t\tBONE_REF = 0 1\n";
+				str += "\t\tWEIGHT_VALUE = 1.0 0.0\n";
+			}
+
 			str += "\t\tTEX = ";
 			str += std::to_string(pVtx[nCntVtx].tex.x);
 			str += " ";

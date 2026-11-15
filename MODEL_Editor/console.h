@@ -29,6 +29,7 @@ public:
 	{
 		MODE_SKIN = 0,		// スキンメッシュ
 		MODE_BONE,			// ボーン
+		MODE_WEIGHT,		// ボーンウェイト
 		MODE_MAX
 	};
 
@@ -69,9 +70,12 @@ public:
 	void Bone(void);
 	D3DXVECTOR3 Movement(D3DXVECTOR3* pOut);
 
+	void Weight(void);
+
 	HRESULT WriteData(const char* pFilename);
 	HRESULT ReadData(const char* pFilename);
 
+	int GetNumBone(void) { return m_nNumBone; }
 	D3DXVECTOR3 GetPosition(void) { return DEFAULT_VECTOR3; }
 	D3DXVECTOR3 GetRotation(void) { return DEFAULT_VECTOR3; }
 
