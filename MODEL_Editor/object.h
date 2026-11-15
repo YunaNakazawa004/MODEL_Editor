@@ -61,6 +61,7 @@ public:
 		TYPE_WIND,				// 風
 		TYPE_FIELD,				// 地面
 		TYPE_WALL,				// 壁
+		TYPE_VTX,				// 頂点モデル
 		TYPE_MESH,				// メッシュ
 		TYPE_MESHWALL,			// メッシュウォール
 		TYPE_MESHRING,			// メッシュリング

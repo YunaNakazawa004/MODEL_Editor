@@ -10,9 +10,12 @@
 #include "main.h"
 #include "object.h"
 
+#include <vector>
+
 //************************************************************************
-// マクロ定義
+// 前方宣言
 //************************************************************************
+class CObjectX;
 
 //************************************************************************
 // メッシュクラス
@@ -62,6 +65,10 @@ public:
 	LPDIRECT3DVERTEXBUFFER9 GetVtxBuff(void) { return m_pVtxBuff; }
 	LPDIRECT3DINDEXBUFFER9 GetIdxBuff(void) { return m_pIdxBuff; }
 
+	void SetVtxDisp(const bool bDisp);
+	void SwapVtxDisp(void);
+
+	void CreateVtxModel(void);
 	void CreatePosOff(const int nNumBone);
 	void CreateBoneInfo(const int nNumBone);
 	void SetPosOff(const int nIdxBone, const D3DXVECTOR3 posBone);
@@ -88,11 +95,13 @@ private:
 	int m_nNumVtxAll;			// 頂点の総数
 	int m_nNumIdxAll;			// インデックスの総数
 	int m_nVtxIdx;				// 選択されている頂点
+	std::vector<CObjectX*> m_vpVtx;		// 頂点モデル
 	D3DXVECTOR3* m_pPosOff;		// 頂点位置のオフセット
 	int* m_pBoneRef;			// 影響を受けるボーン
 	float* m_pWeight;			// ウェイト
 	int m_nNumBone;				// 設定するボーン数
 	int m_type;					// 種類
+	bool m_bVtxDisp;			// 頂点モデルを表示するかどうか
 	bool m_bCalc;				// 移動させたり計算したりするかどうか
 };
 

@@ -11,8 +11,8 @@
 #include "renderer.h"
 #include "input.h"
 #include "sound.h"
-#include "object.h"
 
+#include "objectX.h"
 #include "meshwall.h"
 #include "meshfield.h"
 #include "meshring.h"
@@ -101,11 +101,13 @@ CMesh::CMesh(const int nPriority) :CObject(nPriority)
 	m_nNumVtxAll = 0;
 	m_nNumIdxAll = 0;
 	m_nVtxIdx = 0;
+	m_vpVtx.clear();
 	m_pPosOff = nullptr;
 	m_pBoneRef = nullptr;
 	m_pWeight = nullptr;
 	m_nNumBone = 0;
 	m_type = 0;
+	m_bVtxDisp = true;
 	m_bCalc = true;
 }
 
@@ -183,17 +185,21 @@ void CMesh::Update(void)
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	CEffectBatching* pEffectBatching = CManager::GetEffectBatching();	// バッチ描画エフェクトの取得
 	VERTEX_3D* pVtx;						// 頂点情報へのポインタ
-	static bool bVtxEffect = true;
 
 	if (m_pVtxBuff == nullptr)
 	{// NULLチェック
 		return;
 	}
 
+	if (m_vpVtx.size() == 0)
+	{// 最初だけ
+		CreateVtxModel();
+	}
+
 	// エフェクトの切り替え
 	if (pInputKeyboard->GetTrigger(DIK_F2) == true)
 	{// 切り替える
-		bVtxEffect = (bVtxEffect) ? false : true;
+		SwapVtxDisp();
 	}
 
 	// 頂点バッファをロックし、頂点情報へのポインタを取得
@@ -202,15 +208,15 @@ void CMesh::Update(void)
 	// 頂点情報の設定
 	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
 	{
-		if (bVtxEffect == true)
-		{// 頂点エフェクトをつける場合
-			D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_RED : COLOR_GREEN;
-			float fSize = ((m_nVtxIdx == nCntVtx) ? 10.0f : 6.0f) * m_scale.x;
+		D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_GREEN : COLOR_RED;
+		D3DXVECTOR3 pos;
+		D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
 
-			D3DXVECTOR3 pos;
-			D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
-
-			pEffectBatching->Set(pos, DEFAULT_VECTOR3, 0.0f, 1.0f, 0, 0.0f, 0.0f, 1, fSize, 0.0f, 0.0f, col);
+		if (m_vpVtx.at(nCntVtx) != nullptr)
+		{// NULLチェック
+			m_vpVtx.at(nCntVtx)->SetColor(col);
+			m_vpVtx.at(nCntVtx)->SetScale(m_scale * 0.1f);
+			m_vpVtx.at(nCntVtx)->SetPosition(pos);
 		}
 	}
 
@@ -350,30 +356,36 @@ void CMesh::Controll(void)
 		if (pInputKeyboard->GetPress(DIK_T) == true)
 		{// 大きく
 			pVtx[nCntVtx].pos.x += 1.0f;
+			m_pPosOff[nCntVtx].x += 1.0f;
 		}
 		else if (pInputKeyboard->GetPress(DIK_G) == true)
 		{// 小さく
 			pVtx[nCntVtx].pos.x -= 1.0f;
+			m_pPosOff[nCntVtx].x -= 1.0f;
 		}
 
 		// Y軸移動
 		if (pInputKeyboard->GetPress(DIK_Y) == true)
 		{// 大きく
 			pVtx[nCntVtx].pos.y += 1.0f;
+			m_pPosOff[nCntVtx].y += 1.0f;
 		}
 		else if (pInputKeyboard->GetPress(DIK_H) == true)
 		{// 小さく
 			pVtx[nCntVtx].pos.y -= 1.0f;
+			m_pPosOff[nCntVtx].y -= 1.0f;
 		}
 
 		// Z軸移動
 		if (pInputKeyboard->GetPress(DIK_U) == true)
 		{// 大きく
 			pVtx[nCntVtx].pos.z += 1.0f;
+			m_pPosOff[nCntVtx].z += 1.0f;
 		}
 		else if (pInputKeyboard->GetPress(DIK_J) == true)
 		{// 小さく
 			pVtx[nCntVtx].pos.z -= 1.0f;
+			m_pPosOff[nCntVtx].z -= 1.0f;
 		}
 	}
 
@@ -574,6 +586,11 @@ HRESULT CMesh::CreateVtxBuff(const int nValue)
 	m_nNumVtxAll = nValue;
 	m_nVtxIdx = 0;
 
+	if (m_bCalc == false)
+	{// 一足先に抜ける
+		return hr;
+	}
+
 	return hr;
 }
 
@@ -630,6 +647,44 @@ HRESULT CMesh::CreateIdxBuff(const int nValue)
 	m_nNumIdxAll = nValue;
 
 	return hr;
+}
+
+//========================================================================
+// 頂点モデルの表示設定
+//========================================================================
+void CMesh::SetVtxDisp(const bool bDisp)
+{
+	m_bVtxDisp = bDisp;
+
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
+		m_vpVtx.at(nCntVtx)->SetDisp(m_bVtxDisp);
+	}
+}
+
+//========================================================================
+// 頂点モデルの表示切り替え
+//========================================================================
+void CMesh::SwapVtxDisp(void)
+{
+	m_bVtxDisp = (m_bVtxDisp) ? false : true;
+
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
+		m_vpVtx.at(nCntVtx)->SetDisp(m_bVtxDisp);
+	}
+}
+
+//========================================================================
+// 頂点モデルの生成
+//========================================================================
+void CMesh::CreateVtxModel(void)
+{
+	// 頂点モデルを生成
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
+		m_vpVtx.push_back(CObjectX::Create(m_pos, CObject::TYPE_VTX, "data\\MODEL\\vtx.x"));
+	}
 }
 
 //========================================================================
