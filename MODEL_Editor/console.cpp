@@ -989,7 +989,7 @@ HRESULT CConsole::ReadData(const char* pFilename)
 						}
 						else
 						{// e‚ª‚¢‚éê‡
-							m_vpBone.at(nCntBone)->SetParent(m_vpBone.at(nCntBone));
+							m_vpBone.at(nCntBone)->SetParent(m_vpBone.at(nParent));
 						}
 					}
 

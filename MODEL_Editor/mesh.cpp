@@ -253,7 +253,6 @@ void CMesh::Draw(void)
 	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
 	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
 
-
 	if (m_pBoneRef != nullptr && m_pWeight != nullptr && m_bBoneDraw == true)
 	{// NULLチェック
 		CConsole* pConsole = CManager::GetConsole();						// コンソールの取得
@@ -274,7 +273,7 @@ void CMesh::Draw(void)
 			// ボーンのマトリックスを取得
 			mtxBone = pConsole->GetBone(nCntBone)->GetMtxWorld();
 
-			// 全頂点データの算出
+			// 全頂点データの算出 
 			for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
 			{
 				if (m_pBoneRef[0 * m_nNumVtxAll + nCntVtx] != nCntBone && m_pBoneRef[1 * m_nNumVtxAll + nCntVtx] != nCntBone)
