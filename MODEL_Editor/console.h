@@ -69,8 +69,12 @@ public:
 
 	void Bone(void);
 	D3DXVECTOR3 Movement(D3DXVECTOR3* pOut);
+	D3DXVECTOR3 Rotation(D3DXVECTOR3* pOut);
 
 	void Weight(void);
+
+	void SetBoneDisp(const bool bDisp);
+	void SwapBoneDisp(void);
 
 	HRESULT WriteData(const char* pFilename);
 	HRESULT ReadData(const char* pFilename);
@@ -92,6 +96,7 @@ private:
 	int m_prs;				// 全体操作方法
 	D3DXVECTOR2 m_block;	// 分割数
 	D3DXVECTOR2 m_size;		// サイズ
+	bool m_bDispBone;		// 表示設定
 };	
 
 #endif

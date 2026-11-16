@@ -43,6 +43,8 @@ public:
 	virtual void Update(void);
 	virtual void Draw(void);
 
+	void UninitAll(void);
+
 	void Controll(void);
 	void WeightControll(void);
 
@@ -80,6 +82,8 @@ public:
 	int GetVtxIdx(void) { return m_nVtxIdx; }
 	D3DXVECTOR3 GetVtxPos(void);
 
+	void SetBoneDraw(const bool bBoneDraw) { m_bBoneDraw = bBoneDraw; }
+
 	HRESULT WriteTxtData(const char* pFilename);
 	HRESULT WriteBinData(const char* pFilename);
 
@@ -101,6 +105,7 @@ private:
 	float* m_pWeight;			// ウェイト
 	int m_nNumBone;				// 設定するボーン数
 	int m_type;					// 種類
+	bool m_bBoneDraw;			// ボーンに紐づけて描画するかどうか
 	bool m_bVtxDisp;			// 頂点モデルを表示するかどうか
 	bool m_bCalc;				// 移動させたり計算したりするかどうか
 };

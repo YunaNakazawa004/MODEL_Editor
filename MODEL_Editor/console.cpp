@@ -95,6 +95,7 @@ CConsole::CConsole(const int nPriority) :CObject(nPriority)
 	m_prs = 0;
 	m_block = DEFAULT_VECTOR2;
 	m_size = DEFAULT_VECTOR2;
+	m_bDispBone = true;
 }
 
 //========================================================================
@@ -162,6 +163,7 @@ void CConsole::Update(void)
 	CInputMouse* pInputMouse = CManager::GetInputMouse();				// マウス入力の取得
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	CMeshManager* pMeshManager = CManager::GetMeshManager();			// メッシュマネージャーの取得
+	CMesh* pMesh = pMeshManager->GetMesh();			// メッシュの取得
 
 	// モード切替
 	if (pInputKeyboard->GetTrigger(DIK_F3) == true)
@@ -171,15 +173,19 @@ void CConsole::Update(void)
 
 	pDebugProc->Print("\n****** モード ******\n");
 	pDebugProc->Print("現在のモード [ F3 ] : ( %s )\n",
-		(m_mode == MODE_SKIN) ? "スキンメッシュ" : "ボーン");
+		(m_mode == MODE_SKIN) ? "スキンメッシュ" :
+		(m_mode == MODE_BONE) ? "ボーン" : "ウェイト");
 
 	switch (m_mode)
 	{
 	case MODE_SKIN:			// スキンメッシュ
+		if (pMesh != nullptr)
+		{// NULLチェック
+			pMesh->SetBoneDraw(false);
+		}
+
 		// スキンメッシュ処理
 		Skin();
-
-		m_pSample->SetDisp(false);
 
 		for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
 		{
@@ -189,18 +195,24 @@ void CConsole::Update(void)
 		break;
 
 	case MODE_BONE:			// ボーン
+		if (pMesh != nullptr)
+		{// NULLチェック
+			pMesh->SetBoneDraw(true);
+		}
+
 		// ボーン処理
 		Bone();
-
-		m_pSample->SetDisp(true);
 
 		break;
 
 	case MODE_WEIGHT:		// ボーンウェイト
+		if (pMesh != nullptr)
+		{// NULLチェック
+			pMesh->SetBoneDraw(false);
+		}
+
 		// ウェイト処理
 		Weight();
-
-		m_pSample->SetDisp(false);
 
 		for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
 		{
@@ -508,34 +520,45 @@ void CConsole::Bone(void)
 	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
 	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
 	D3DXVECTOR3 posTarget;
+	D3DXVECTOR3 rotTarget;
 	static int nTarget = 0;
 
 	if (pInputKeyboard->GetTrigger(DIK_TAB) == true)
 	{// 操作対象を切り替え
 		nTarget = (nTarget + 1) % (m_nNumBone + 1);
 	}
+	
+	if (pInputKeyboard->GetTrigger(DIK_B) == true)
+	{// 操作対象を切り替え
+		SwapBoneDisp();
+	}
 
 	if (nTarget == m_nNumBone)
 	{// 模型を対象としている
 		posTarget = m_pSample->GetPosition();
+		rotTarget = m_pSample->GetRotation();
 
 		// 模型の移動
 		m_pSample->SetPosition(Movement(&posTarget));
+		m_pSample->SetRotation(Rotation(&rotTarget));
 		m_pSample->SetColor(D3DXCOLOR(1.0f, 0.0f, 0.0f, 0.5f));
 	}
 	else
 	{// ボーンを対象としている
 		posTarget = m_vpBone.at(nTarget)->GetPosition();
+		rotTarget = m_vpBone.at(nTarget)->GetRotation();
 
 		m_vpBone.at(nTarget)->SetPosition(Movement(&posTarget));
 		m_vpModel.at(nTarget)->SetPosition(Movement(&posTarget));
+		m_vpBone.at(nTarget)->SetRotation(Rotation(&rotTarget));
+		m_vpModel.at(nTarget)->SetRotation(Rotation(&rotTarget));
 
 		m_pSample->SetColor(COLOR_WHITE_ALPHA);
 	}
 
 	if (pInputKeyboard->GetTrigger(DIK_RETURN) == true)
 	{// エンター
-		m_vpBone.push_back(CBone::Create(posTarget, DEFAULT_VECTOR3));
+		m_vpBone.push_back(CBone::Create(posTarget, rotTarget));
 		m_vnParent.push_back(-1);
 		m_vpModel.push_back(CObjectX::Create(posTarget, CObject::TYPE_NONE, "data\\MODEL\\bone.x"));
 
@@ -548,6 +571,8 @@ void CConsole::Bone(void)
 	pDebugProc->Print("現在の位置 : ( %f %f %f )\n", m_pSample->GetPosition().x, m_pSample->GetPosition().y, m_pSample->GetPosition().z);
 	pDebugProc->Print("移動 [ W/A/S/D/Z/C ]\n");
 	pDebugProc->Print("ボーン配置 [ ENTER ]\n");
+	pDebugProc->Print("ボーンの表示設定 : ( %s )\n", 
+		(m_bDispBone) ? "表示" : "非表示");
 
 	// ボーンに関するコメント
 	pDebugProc->Print("\n****** ボーン ******\n");
@@ -583,6 +608,8 @@ void CConsole::Bone(void)
 		pDebugProc->Print("[ %d ] ", nCntBone);
 		pDebugProc->Print("現在の位置 : ( %f %f %f )\n",
 			m_vpBone.at(nCntBone)->GetPosition().x, m_vpBone.at(nCntBone)->GetPosition().y, m_vpBone.at(nCntBone)->GetPosition().z);
+		pDebugProc->Print("現在の向き : ( %f %f %f )\n",
+			m_vpBone.at(nCntBone)->GetRotation().x, m_vpBone.at(nCntBone)->GetRotation().y, m_vpBone.at(nCntBone)->GetRotation().z);
 		pDebugProc->Print("    親 [ F ] : ( %d )\n", m_vnParent.at(nCntBone));
 	}
 }
@@ -655,6 +682,44 @@ D3DXVECTOR3 CConsole::Movement(D3DXVECTOR3* pOut)
 }
 
 //========================================================================
+// 回転処理
+//========================================================================
+D3DXVECTOR3 CConsole::Rotation(D3DXVECTOR3* pOut)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+
+	if (pInputKeyboard->GetRepeat(DIK_I) == true)		// キーボード移動
+	{// X軸回転			
+		pOut->x += 0.03f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_K) == true)
+	{// X軸回転
+		pOut->x -= 0.03f;
+	}
+
+	if (pInputKeyboard->GetRepeat(DIK_J) == true)
+	{// Z軸回転
+		pOut->z += 0.03f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_L) == true)
+	{// Z軸回転
+		pOut->z -= 0.03f;
+	}
+
+	if (pInputKeyboard->GetRepeat(DIK_U) == true)
+	{// Y軸回転
+		pOut->y += 0.03f;
+	}
+	else if (pInputKeyboard->GetRepeat(DIK_O) == true)
+	{// Y軸回転
+		pOut->y -= 0.03f;
+	}
+
+	return *pOut;
+}
+
+//========================================================================
 // ボーンウェイト処理
 //========================================================================
 void CConsole::Weight(void)
@@ -668,6 +733,40 @@ void CConsole::Weight(void)
 	{// NULLチェック
 		// ウェイトコントロール
 		pMesh->WeightControll();
+	}
+}
+
+//========================================================================
+// ボーンモデルの表示設定
+//========================================================================
+void CConsole::SetBoneDisp(const bool bDisp)
+{
+	m_bDispBone = bDisp;
+
+	// 模型の表示設定
+	m_pSample->SetDisp(m_bDispBone);
+
+	// ボーンモデルの表示設定
+	for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+	{
+		m_vpModel.at(nCntBone)->SetDisp(m_bDispBone);
+	}
+}
+
+//========================================================================
+// ボーンモデルの表示切り替え
+//========================================================================
+void CConsole::SwapBoneDisp(void)
+{
+	m_bDispBone = (m_bDispBone) ? false : true;
+
+	// 模型の表示設定
+	m_pSample->SetDisp(m_bDispBone);
+
+	// ボーンモデルの表示設定
+	for (int nCntBone = 0; nCntBone < m_nNumBone; nCntBone++)
+	{
+		m_vpModel.at(nCntBone)->SetDisp(m_bDispBone);
 	}
 }
 
@@ -726,7 +825,7 @@ HRESULT CConsole::WriteData(const char* pFilename)
 		localtime_s(&tm_now, &now_c);		// Windowsの場合
 
 		// フォーマット
-		oss << std::put_time(&tm_now, "%Y%m%d%H%M%S");
+		oss << std::put_time(&tm_now, "%Y/%m/%d %H:%M:%S");
 
 		// 現在時刻を入れておく
 		str.clear();
@@ -809,102 +908,99 @@ HRESULT CConsole::ReadData(const char* pFilename)
 					pMesh->CreateBoneInfo(2);
 				}
 
-				continue;
-			}
+				file >> line;				// 次の文字
 
-			// ボーン読み込み
-			for (int nCntBone = 0; nCntBone < nNumBone; nCntBone++)
-			{
-				if (line.find("BONE") != std::string::npos)
-				{// BONE
-					file >> line;				// ボーン設定
-				}
+				// ボーン読み込み
+				for (int nCntBone = 0; nCntBone < nNumBone; nCntBone++)
+				{
+					if (line.find("BONE") != std::string::npos)
+					{// BONE
+						file >> line;				// ボーン設定
+					}
 
-				if (line.find("PARENT") != std::string::npos)
-				{// 親のボーン番号
-					file >> line;				// =
-					file >> nParent;			// 親のボーン番号
+					if (line.find("PARENT") != std::string::npos)
+					{// 親のボーン番号
+						file >> line;				// =
+						file >> nParent;			// 親のボーン番号
 
-					file >> line;				// 次の文字列
+						file >> line;				// 次の文字列
 
-					if (line.find("#") != std::string::npos)
-					{// コメント
-						std::getline(file, line);
+						if (line.find("#") != std::string::npos)
+						{// コメント
+							std::getline(file, line);
 
-						// 次の文字列を読み込む
-						file >> line;			// 次の文字列
+							// 次の文字列を読み込む
+							file >> line;			// 次の文字列
+						}
+					}
+
+					if (line.find("POS") != std::string::npos)
+					{// ボーンの位置(オフセット)
+						file >> line;				// =
+						file >> pos.x;				// 位置(オフセット)x
+						file >> pos.y;				// 位置(オフセット)y
+						file >> pos.z;				// 位置(オフセット)y
+
+						file >> line;				// 次の文字列
+
+						if (line.find("#") != std::string::npos)
+						{// コメント
+							std::getline(file, line);
+
+							// 次の文字列を読み込む
+							file >> line;			// 次の文字列
+						}
+					}
+
+					if (line.find("ROT") != std::string::npos)
+					{// ボーンの向き
+						file >> line;				// =
+						file >> rot.x;				// 向き(オフセット)x
+						file >> rot.y;				// 向き(オフセット)y
+						file >> rot.z;				// 向き(オフセット)y
+
+						file >> line;				// 次の文字列
+
+						if (line.find("#") != std::string::npos)
+						{// コメント
+							std::getline(file, line);
+
+							// 次の文字列を読み込む
+							file >> line;			// 次の文字列
+						}
+					}
+
+					if (line.find("END_BONE") != std::string::npos)
+					{// END_BONE
+						file >> line;				// 次の文字列
+					}
+
+					// ボーンを生成
+					m_vpBone.push_back(CBone::Create(pos, rot));
+					m_vpModel.push_back(CObjectX::Create(pos, CObject::TYPE_NONE, "data\\MODEL\\bone.x", 3));
+					m_vnParent.push_back(nParent);
+
+					// 親の設定
+					if (m_vpBone.at(nCntBone) != nullptr)
+					{// NULLチェック
+						if (nParent < 0 || nParent >= nNumBone)
+						{// 親がいない場合
+							m_vpBone.at(nCntBone)->SetParent(nullptr);
+						}
+						else
+						{// 親がいる場合
+							m_vpBone.at(nCntBone)->SetParent(m_vpBone.at(nCntBone));
+						}
+					}
+
+					if (pMesh != nullptr)
+					{// NULLチェック
+						// 位置のオフセットを設定
+						pMesh->SetPosOff(nCntBone, pos);
 					}
 				}
 
-				if (line.find("POS") != std::string::npos)
-				{// ボーンの位置(オフセット)
-					file >> line;				// =
-					file >> pos.x;				// 位置(オフセット)x
-					file >> pos.y;				// 位置(オフセット)y
-					file >> pos.z;				// 位置(オフセット)y
-
-					file >> line;				// 次の文字列
-
-					if (line.find("#") != std::string::npos)
-					{// コメント
-						std::getline(file, line);
-
-						// 次の文字列を読み込む
-						file >> line;			// 次の文字列
-					}
-				}
-
-				if (line.find("ROT") != std::string::npos)
-				{// ボーンの向き
-					file >> line;				// =
-					file >> rot.x;				// 向き(オフセット)x
-					file >> rot.y;				// 向き(オフセット)y
-					file >> rot.z;				// 向き(オフセット)y
-
-					file >> line;				// 次の文字列
-
-					if (line.find("#") != std::string::npos)
-					{// コメント
-						std::getline(file, line);
-
-						// 次の文字列を読み込む
-						file >> line;			// 次の文字列
-					}
-				}
-
-				if (line.find("END_BONE") != std::string::npos)
-				{// END_BONE
-					file >> line;				// 次の文字列
-				}
-
-				// ボーンを生成
-				m_vpBone.push_back(CBone::Create(pos, rot));
-				m_vpModel.push_back(CObjectX::Create(pos, CObject::TYPE_NONE, "data\\MODEL\\bone.x", 3));
-				m_vnParent.push_back(nParent);
-
-				// 親の設定
-				if (m_vpBone.at(nCntBone) != nullptr)
-				{// NULLチェック
-					if (nParent < 0 || nParent >= nNumBone)
-					{// 親がいない場合
-						m_vpBone.at(nCntBone)->SetParent(nullptr);
-					}
-					else
-					{// 親がいる場合
-						m_vpBone.at(nCntBone)->SetParent(m_vpBone.at(nCntBone));
-					}
-				}
-
-				if (pMesh != nullptr)
-				{// NULLチェック
-					// 位置のオフセットを設定
-					pMesh->SetPosOff(nCntBone, pos);
-
-					if (nCntBone == nNumBone - 1)
-					{// 設定する数分生成した
-						break;
-					}
-				}
+				break;
 			}
 		}
 

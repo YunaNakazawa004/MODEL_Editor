@@ -26,6 +26,10 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 //************************************************************************
 // マクロ定義
@@ -107,6 +111,7 @@ CMesh::CMesh(const int nPriority) :CObject(nPriority)
 	m_pWeight = nullptr;
 	m_nNumBone = 0;
 	m_type = 0;
+	m_bBoneDraw = true;
 	m_bVtxDisp = true;
 	m_bCalc = true;
 }
@@ -248,7 +253,8 @@ void CMesh::Draw(void)
 	D3DXMatrixTranslation(&mtxTrans, m_pos.x, m_pos.y, m_pos.z);
 	D3DXMatrixMultiply(&m_mtxWorld, &m_mtxWorld, &mtxTrans);
 
-	if (m_pBoneRef != nullptr && m_pWeight != nullptr)
+
+	if (m_pBoneRef != nullptr && m_pWeight != nullptr && m_bBoneDraw == true)
 	{// NULLチェック
 		CConsole* pConsole = CManager::GetConsole();						// コンソールの取得
 		D3DXVECTOR3* pPosCorrect = new D3DXVECTOR3[m_nNumVtxAll];
@@ -315,6 +321,65 @@ void CMesh::Draw(void)
 
 	// ワールドマトリックスの設定
 	pDevice->SetTransform(D3DTS_WORLD, &m_mtxWorld);
+}
+
+//========================================================================
+// メッシュの全てを破棄
+//========================================================================
+void CMesh::UninitAll(void)
+{
+	// 頂点バッファの破棄
+	if (m_pVtxBuff != nullptr)
+	{
+		m_pVtxBuff->Release();
+		m_pVtxBuff = nullptr;
+	}
+
+	// インデックスバッファの破棄
+	if (m_pIdxBuff != nullptr)
+	{
+		m_pIdxBuff->Release();
+		m_pIdxBuff = nullptr;
+	}
+
+	// 頂点モデルの破棄
+	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
+	{
+		if (m_vpVtx.at(nCntVtx) != nullptr)
+		{// NULLチェック
+			// 終了処理
+			m_vpVtx.at(nCntVtx)->Uninit();
+
+			m_vpVtx.at(nCntVtx) = nullptr;
+		}
+	}
+
+	// クリア
+	m_vpVtx.clear();
+
+	// 頂点位置のオフセットの破棄
+	if (m_pPosOff != nullptr)
+	{
+		delete[] m_pPosOff;
+		m_pPosOff = nullptr;
+	}
+
+	// 影響を受けるボーンの破棄
+	if (m_pBoneRef != nullptr)
+	{
+		delete[] m_pBoneRef;
+		m_pBoneRef = nullptr;
+	}
+
+	// ウェイトの破棄
+	if (m_pWeight != nullptr)
+	{
+		delete[] m_pWeight;
+		m_pWeight = nullptr;
+	}
+
+	// 自分自身を破棄
+	CObject::Release();
 }
 
 //========================================================================
@@ -862,6 +927,25 @@ HRESULT CMesh::WriteTxtData(const char* pFilename)
 
 		// インデックスバッファをアンロックする
 		GetIdxBuff()->Unlock();
+
+		// 現在時刻を取得
+		std::ostringstream oss;
+		auto now = std::chrono::system_clock::now();
+		std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+		// ローカル時刻にする
+		std::tm tm_now{};
+		localtime_s(&tm_now, &now_c);		// Windowsの場合
+
+		// フォーマット
+		oss << std::put_time(&tm_now, "%Y/%m/%d %H:%M:%S");
+
+		// 現在時刻を入れておく
+		str.clear();
+		str = "#";
+		str += oss.str();
+		str += "\n";
+		filetxt.write(str.c_str(), str.size());
 
 		// ファイルを閉じる
 		filetxt.close();

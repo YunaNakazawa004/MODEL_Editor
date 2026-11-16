@@ -101,7 +101,7 @@ void CMeshManager::ResetData(void)
 	if (m_apMesh != NULL)
 	{// NULLチェック
 		// 終了処理
-		m_apMesh->Uninit();
+		m_apMesh->UninitAll();
 
 		m_apMesh = NULL;
 	}
