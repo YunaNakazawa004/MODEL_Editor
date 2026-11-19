@@ -321,6 +321,9 @@ void CConsole::Skin(void)
 		pDebugProc->Print("XŽ²ˆÚ“® [ T > G ] : ( %f )\n", pMesh->GetVtxPos().x);
 		pDebugProc->Print("YŽ²ˆÚ“® [ Y > H ] : ( %f )\n", pMesh->GetVtxPos().y);
 		pDebugProc->Print("ZŽ²ˆÚ“® [ U > J ] : ( %f )\n", pMesh->GetVtxPos().z);
+
+		// ‰e‚Ì’¸“_‚ðÝ’è
+		pMesh->SetShadowVtx();
 	}
 }
 

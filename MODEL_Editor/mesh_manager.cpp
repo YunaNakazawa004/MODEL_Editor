@@ -223,6 +223,19 @@ HRESULT CMeshManager::ReadData(const char* pFilename)
 			pWeight = nullptr;
 		}
 
+		// 影に関する読み込み
+		int nNumShadowVtx = 0;
+		file.read((char*)&nNumShadowVtx, sizeof(nNumShadowVtx));
+
+		for (int nCntShadow = 0; nCntShadow < nNumShadowVtx; nCntShadow++)
+		{
+			int nShadowVtx = -1;
+			file.read((char*)&nShadowVtx, sizeof(nShadowVtx));
+
+			// 影の頂点を生成
+			m_apMesh->CreateShadowVtx(nShadowVtx);
+		}
+
 		// ファイルを閉じる
 		file.close();
 	}

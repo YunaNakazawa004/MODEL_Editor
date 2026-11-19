@@ -46,6 +46,7 @@ public:
 	void UninitAll(void);
 
 	void Controll(void);
+	void SetShadowVtx(void);
 	void WeightControll(void);
 
 	void SetPosition(const D3DXVECTOR3 pos);
@@ -73,6 +74,7 @@ public:
 	void CreateVtxModel(void);
 	void CreatePosOff(const int nNumBone);
 	void CreateBoneInfo(const int nNumBone);
+	void CreateShadowVtx(const int nValue);
 	void SetPosOff(const int nIdxBone, const D3DXVECTOR3 posBone);
 	int* GetBoneRef(void) { return m_pBoneRef; }
 	float* GetWeight(void) { return m_pWeight; }
@@ -100,6 +102,8 @@ private:
 	int m_nNumIdxAll;			// インデックスの総数
 	int m_nVtxIdx;				// 選択されている頂点
 	std::vector<CObjectX*> m_vpVtx;		// 頂点モデル
+	std::vector<int> m_vnShadow;		// 影に使う頂点の番号
+	int m_nNumShadowVtx;				// 影に使う頂点の数
 	D3DXVECTOR3* m_pPosOff;		// 頂点位置のオフセット
 	int* m_pBoneRef;			// 影響を受けるボーン
 	float* m_pWeight;			// ウェイト

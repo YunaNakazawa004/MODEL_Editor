@@ -106,6 +106,8 @@ CMesh::CMesh(const int nPriority) :CObject(nPriority)
 	m_nNumIdxAll = 0;
 	m_nVtxIdx = 0;
 	m_vpVtx.clear();
+	m_vnShadow.clear();
+	m_nNumShadowVtx = 0;
 	m_pPosOff = nullptr;
 	m_pBoneRef = nullptr;
 	m_pWeight = nullptr;
@@ -213,9 +215,22 @@ void CMesh::Update(void)
 	// 頂点情報の設定
 	for (int nCntVtx = 0; nCntVtx < m_nNumVtxAll; nCntVtx++)
 	{
-		D3DXCOLOR col = (m_nVtxIdx == nCntVtx) ? COLOR_GREEN : COLOR_RED;
+		D3DXCOLOR col = COLOR_RED;
 		D3DXVECTOR3 pos;
 		D3DXVec3TransformCoord(&pos, &pVtx[nCntVtx].pos, &m_mtxWorld);
+
+		for (int nCntShadow = 0; nCntShadow < m_nNumShadowVtx; nCntShadow++)
+		{
+			if (nCntVtx == m_vnShadow.at(nCntShadow))
+			{// 影の頂点
+				col = COLOR_YELLOW;
+			}
+		}
+
+		if (m_nVtxIdx == nCntVtx)
+		{// 操作している頂点
+			col = COLOR_GREEN;
+		}
 
 		if (m_vpVtx.at(nCntVtx) != nullptr)
 		{// NULLチェック
@@ -455,6 +470,41 @@ void CMesh::Controll(void)
 
 	// 頂点バッファをアンロックする
 	m_pVtxBuff->Unlock();
+}
+
+//========================================================================
+// 影の頂点を設定
+//========================================================================
+void CMesh::SetShadowVtx(void)
+{
+	CInputKeyboard* pInputKeyboard = CManager::GetInputKeyboard();		// キーボード入力の取得
+	CDebugProc* pDebugProc = CManager::GetDebugProc();					// デバッグ表示の取得
+
+	if (pInputKeyboard->GetTrigger(DIK_F))
+	{// 設定
+		for (int nCntShadow = 0; nCntShadow < m_nNumShadowVtx; nCntShadow++)
+		{
+			if (m_vnShadow.at(nCntShadow) == m_nVtxIdx)
+			{// すでに設定されている
+				if (nCntShadow == m_nNumShadowVtx - 1)
+				{// 最後尾
+					m_vnShadow.pop_back();
+				}
+				else
+				{// それ以外
+					m_vnShadow.at(nCntShadow) = m_vnShadow.back();
+					m_vnShadow.pop_back();
+				}
+
+				m_nNumShadowVtx--;
+
+				return;
+			}
+		}
+
+		m_vnShadow.push_back(m_nVtxIdx);
+		m_nNumShadowVtx++;
+	}
 }
 
 //========================================================================
@@ -805,6 +855,22 @@ void CMesh::CreateBoneInfo(const int nNumBone)
 }
 
 //========================================================================
+// 影の頂点を生成
+//========================================================================
+void CMesh::CreateShadowVtx(const int nValue)
+{
+	if (nValue < 0 || nValue >= m_nNumVtxAll)
+	{// 範囲外の数値
+		return;
+	}
+
+	// 生成
+	m_vnShadow.push_back(nValue);
+
+	m_nNumShadowVtx++;
+}
+
+//========================================================================
 // 頂点位置のオフセットを設定
 //========================================================================
 void CMesh::SetPosOff(const int nIdxBone, const D3DXVECTOR3 posBone)
@@ -927,6 +993,24 @@ HRESULT CMesh::WriteTxtData(const char* pFilename)
 		// インデックスバッファをアンロックする
 		GetIdxBuff()->Unlock();
 
+		// 影に関する書き込み
+		str.clear();
+		str = "NUM_SHADOW_VTX = ";
+		str += std::to_string(m_nNumShadowVtx);
+		str += "\n";
+
+		filetxt.write(str.c_str(), str.size());
+
+		for (int nCntShadow = 0; nCntShadow < m_nNumShadowVtx; nCntShadow++)
+		{
+			str.clear();
+			str += "\tSHADOW_VTX = ";
+			str += std::to_string(m_vnShadow.at(nCntShadow));
+			str += "\n";
+
+			filetxt.write(str.c_str(), str.size());
+		}
+
 		// 現在時刻を取得
 		std::ostringstream oss;
 		auto now = std::chrono::system_clock::now();
@@ -1017,6 +1101,14 @@ HRESULT CMesh::WriteBinData(const char* pFilename)
 			{
 				filebin.write((const char*)&m_pWeight[nCntBoneVtx], sizeof(float));
 			}
+		}
+
+		// 影に関する書き込み
+		filebin.write((const char*)&m_nNumShadowVtx, sizeof(m_nNumShadowVtx));
+
+		for (int nCntShadow = 0; nCntShadow < m_nNumShadowVtx; nCntShadow++)
+		{
+			filebin.write((const char*)&m_vnShadow.at(nCntShadow), sizeof(m_vnShadow.at(nCntShadow)));
 		}
 
 		// ファイルを閉じる
